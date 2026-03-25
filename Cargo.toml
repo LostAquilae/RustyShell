@@ -1,0 +1,19 @@
+[package]
+name = "RustyShell"
+version = "0.1.1"
+edition = "2024"
+
+[[bin]]
+name = "RustyShell_shellcode"
+path = "src/shellcode.rs"
+required-features = ["shellcode"]
+
+[[bin]]
+name = "RustyShell_debug_no_shellcode"
+path = "src/debug-no-shellcode.rs"
+
+[dependencies]
+wstr-literal = "0.1"
+
+[features]
+shellcode = []
