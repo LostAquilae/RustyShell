@@ -7,7 +7,8 @@ NIGHTLY_ARGS = "-Z build-std=std,core,panic_abort"
 [tasks.windows_gnu_shellcode]
 description = "Cross compiling using gnu target"
 script = [
-    "cargo +nightly build --target x86_64-pc-windows-gnu --bin HelLoader_shellcode --features shellcode --release ${NIGHTLY_ARGS}"
+    "cargo +nightly build --target x86_64-pc-windows-gnu --bin HelLoader_shellcode --features shellcode --release ${NIGHTLY_ARGS}",
+    "objcopy -O binary --only-section=.text ./target/x86_64-pc-windows-gnu/release/HelLoader_shellcode.exe ./target/x86_64-pc-windows-gnu/release/HelLoader_shellcode.bin"
 ]
 env = { "RUSTFLAGS" = "${CODEGEN_ARGS}"}
 
