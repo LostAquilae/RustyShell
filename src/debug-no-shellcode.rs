@@ -4,6 +4,7 @@
 //! no std and an assembly entrypoint for shellcode
 
 #![feature(ptr_cast_slice)]
+#![allow(non_snake_case)]
 mod runtime_resolve;
 use runtime_resolve::{get_dll_address, get_exported_function};
 
@@ -16,7 +17,7 @@ use std::error::Error;
 use wstr_literal::wstr;
 
 /// This function is simply here for debug purposes, when shellcode is not required to test some part of a code
-/// 
+///
 /// For now this function uses the get_dll_address and get_exported_function of the runtime_resolve module
 /// to load User32.dll thanks to LoadLibraryA and then call MessageBoxA, doing all this shellcode compatible
 fn main() -> Result<(), Box<dyn Error>> {
@@ -59,7 +60,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 =
         unsafe { core::mem::transmute(MessageBoxA_address) };
-    let message_box_result = MessageBoxA_func(
+
+    MessageBoxA_func(
         null_mut(),
         c"Hello World!".as_ptr().cast(),
         c"Example".as_ptr().cast(),

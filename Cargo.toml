@@ -9,11 +9,18 @@ path = "src/shellcode.rs"
 required-features = ["shellcode"]
 
 [[bin]]
+name = "RustyShell_shellcode_debug"
+path = "src/shellcode.rs"
+required-features = ["shellcode", "debug"]
+
+[[bin]]
 name = "RustyShell_debug_no_shellcode"
 path = "src/debug-no-shellcode.rs"
+required-features = ["debug"]
 
 [dependencies]
 wstr-literal = "0.1"
 
 [features]
 shellcode = []
+debug = []
