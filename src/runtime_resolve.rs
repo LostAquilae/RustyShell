@@ -1,9 +1,8 @@
 use core::arch::asm;
 use core::char;
 use core::ffi::{CStr, c_void};
-
-#[cfg(not(feature = "shellcode"))]
-use core::fmt::Display;
+use core::error::Error;
+use core::fmt::{Display, Formatter};
 
 use crate::pe_types::*;
 use crate::peb_types::*;
@@ -11,15 +10,31 @@ use crate::peb_types::*;
 // use intrusive_collections::container_of;
 // use widestring::U16String;
 
-/// A simple error enum that gives informations regarding the error that occured in the runtime_resolve module
+/// A simple error enum that gives information regarding the error that could occur in the runtime_resolve module
 #[derive(Debug)]
-pub enum Errors {
-    NullPointer,
+pub enum RuntimeResolveErrors {
+    NullPointer(* const c_void),
     CastError,
-    ForwardedExportFunction,
-    ExportNotFound,
+    ForwardedExportFunction(& 'static CStr),
+    ExportNotFound(& 'static CStr),
+    ModuleNotFound,
     Unknown,
 }
+
+impl Display for RuntimeResolveErrors {
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        match self {
+            RuntimeResolveErrors::NullPointer(pointer) => write!(f, "Pointer sent as argument is null; here is its printed value: {:p}", pointer),
+            RuntimeResolveErrors::CastError => write!(f, "Error while casting some value"),
+            RuntimeResolveErrors::ForwardedExportFunction(function_name) => write!(f, "The function {:?} is an exported function, not implement yet", function_name),
+            RuntimeResolveErrors::ExportNotFound(function_name) => write!(f, "The function {:?} couldn't be found", function_name),
+            RuntimeResolveErrors::ModuleNotFound => write!(f, "The DLL couldn't be found"),
+            RuntimeResolveErrors::Unknown => write!(f, "Unknown error"),
+        }
+    }
+}
+
+impl Error for RuntimeResolveErrors {}
 
 /// Just a simple struct representing a WideString in Windows.
 ///
@@ -35,10 +50,10 @@ pub struct WideString {
 
 impl WideString {
     /// Construct a new WideString from a raw pointer
-    pub fn new(pointer: *const u16) -> Result<Self, Errors> {
+    pub fn new(pointer: *const u16) -> Result<Self, RuntimeResolveErrors> {
         // Checking for null pointer
         if pointer.is_null() {
-            return Err(Errors::NullPointer);
+            return Err(RuntimeResolveErrors::NullPointer(pointer.cast()));
         }
 
         // Constructing WideString structure
@@ -116,7 +131,7 @@ impl Display for WideString {
 /// # Return value
 ///
 /// Returns a Result containing the raw pointer to the DLL or an error of type Errors
-pub fn get_dll_address(dll_name_pointer: *const u16) -> Result<*const c_void, Errors> {
+pub fn get_dll_address(dll_name_pointer: *const u16) -> Result<*const c_void, RuntimeResolveErrors> {
     // Constructing the WideString from the wide dll name
     let dll_name = WideString::new(dll_name_pointer)?;
 
@@ -169,7 +184,7 @@ pub fn get_dll_address(dll_name_pointer: *const u16) -> Result<*const c_void, Er
         println!("Couldn't decode dll_name from raw array utf16 encoded");
     }
 
-    Err(Errors::Unknown)
+    Err(RuntimeResolveErrors::ModuleNotFound)
 }
 
 /// Get the address of a specific function inside a DLL
@@ -184,11 +199,11 @@ pub fn get_dll_address(dll_name_pointer: *const u16) -> Result<*const c_void, Er
 /// Returns a Result containing the raw pointer to the function or an error of type Errors
 pub fn get_exported_function(
     dll_address: *const c_void,
-    function_name: &CStr,
-) -> Result<*const c_void, Errors> {
+    function_name: &'static CStr,
+) -> Result<*const c_void, RuntimeResolveErrors> {
     // Checking for null pointer
     if dll_address.is_null() {
-        return Err(Errors::NullPointer);
+        return Err(RuntimeResolveErrors::NullPointer(dll_address));
     }
 
     // Casting the pointer back to a reference
@@ -198,13 +213,13 @@ pub fn get_exported_function(
     if dos_header.e_magic != 0x5A4D {
         #[cfg(not(feature = "shellcode"))]
         println!("The pointer does not point to a DOS Header");
-        return Err(Errors::Unknown);
+        return Err(RuntimeResolveErrors::Unknown);
     }
 
     // Computing the pointer toward the NT header and casting it as a reference
     let nt_header = unsafe {
         &*dll_address
-            .byte_add(usize::try_from(dos_header.e_lfanew).map_err(|_| Errors::CastError)?)
+            .byte_add(usize::try_from(dos_header.e_lfanew).map_err(|_| RuntimeResolveErrors::CastError)?)
             .cast::<IMAGE_NT_HEADERS64>()
     };
 
@@ -212,7 +227,7 @@ pub fn get_exported_function(
     if nt_header.Signature != 0x4550 {
         #[cfg(not(feature = "shellcode"))]
         println!("The pointer does not point to a NtHeader");
-        return Err(Errors::Unknown);
+        return Err(RuntimeResolveErrors::Unknown);
     }
 
     // Retrieving the export table information
@@ -223,7 +238,7 @@ pub fn get_exported_function(
     if image_export_directory.Size == 0 || image_export_directory.VirtualAddress == 0 {
         #[cfg(not(feature = "shellcode"))]
         println!("No export directory inside the DLL");
-        return Err(Errors::Unknown);
+        return Err(RuntimeResolveErrors::Unknown);
     }
 
     // Computing the pointer toward the export table
@@ -231,14 +246,14 @@ pub fn get_exported_function(
         &*dll_address
             .byte_add(
                 usize::try_from(image_export_directory.VirtualAddress)
-                    .map_err(|_| Errors::CastError)?,
+                    .map_err(|_| RuntimeResolveErrors::CastError)?,
             )
             .cast::<IMAGE_EXPORT_DIRECTORY>()
     };
 
     // Casting to usize because i below needs to be usize for indexing in arrays
     let number_of_names =
-        usize::try_from(export_directory.NumberOfNames).map_err(|_| Errors::CastError)?;
+        usize::try_from(export_directory.NumberOfNames).map_err(|_| RuntimeResolveErrors::CastError)?;
 
     // Constructing arrays into which we are going to index
     // We heavily use cast function from raw pointer, especially the cast_slice which is gated behind an unstable feature,
@@ -246,28 +261,28 @@ pub fn get_exported_function(
     let name_table = unsafe {
         &*dll_address
             .byte_add(
-                usize::try_from(export_directory.AddressOfNames).map_err(|_| Errors::CastError)?,
+                usize::try_from(export_directory.AddressOfNames).map_err(|_| RuntimeResolveErrors::CastError)?,
             )
             .cast::<u32>()
-            .cast_slice(usize::try_from(number_of_names).map_err(|_| Errors::CastError)?)
+            .cast_slice(usize::try_from(number_of_names).map_err(|_| RuntimeResolveErrors::CastError)?)
     };
     let func_table = unsafe {
         &*dll_address
             .byte_add(
                 usize::try_from(export_directory.AddressOfFunctions)
-                    .map_err(|_| Errors::CastError)?,
+                    .map_err(|_| RuntimeResolveErrors::CastError)?,
             )
             .cast::<u32>()
-            .cast_slice(usize::try_from(number_of_names).map_err(|_| Errors::CastError)?)
+            .cast_slice(usize::try_from(number_of_names).map_err(|_| RuntimeResolveErrors::CastError)?)
     };
     let ord_table = unsafe {
         &*dll_address
             .byte_add(
                 usize::try_from(export_directory.AddressOfNameOrdinals)
-                    .map_err(|_| Errors::CastError)?,
+                    .map_err(|_| RuntimeResolveErrors::CastError)?,
             )
             .cast::<u16>()
-            .cast_slice(usize::try_from(number_of_names).map_err(|_| Errors::CastError)?)
+            .cast_slice(usize::try_from(number_of_names).map_err(|_| RuntimeResolveErrors::CastError)?)
     };
 
     // Looping through the name table to find the function we seek
@@ -278,7 +293,7 @@ pub fn get_exported_function(
         let cstr_name = unsafe {
             CStr::from_ptr(
                 dll_address
-                    .byte_add(usize::try_from(name_table[i]).map_err(|_| Errors::CastError)?)
+                    .byte_add(usize::try_from(name_table[i]).map_err(|_| RuntimeResolveErrors::CastError)?)
                     .cast(),
             )
         };
@@ -290,7 +305,7 @@ pub fn get_exported_function(
 
             // Using this ordinal, we can index inside the function_table to get the offset toward the actual function implementation
             let func_rva =
-                func_table[usize::try_from(ordinal_rva).map_err(|_| Errors::CastError)?];
+                func_table[usize::try_from(ordinal_rva).map_err(|_| RuntimeResolveErrors::CastError)?];
 
             // We check if this offset is outside the export directory, because if it is, it means the exported symbol is forwarded to another DLL
             if func_rva < image_export_directory.VirtualAddress
@@ -302,16 +317,16 @@ pub fn get_exported_function(
                     function_name,
                     unsafe {
                         dll_address
-                            .byte_add(usize::try_from(func_rva).map_err(|_| Errors::CastError)?)
+                            .byte_add(usize::try_from(func_rva).map_err(|_| RuntimeResolveErrors::CastError)?)
                     }
                 );
 
                 return Ok(unsafe {
-                    dll_address.byte_add(usize::try_from(func_rva).map_err(|_| Errors::CastError)?)
+                    dll_address.byte_add(usize::try_from(func_rva).map_err(|_| RuntimeResolveErrors::CastError)?)
                 });
             } else {
                 // Returning an error for now, but implementation to handle this case will be coming
-                return Err(Errors::ForwardedExportFunction);
+                return Err(RuntimeResolveErrors::ForwardedExportFunction(function_name));
             }
         }
     }
@@ -319,5 +334,5 @@ pub fn get_exported_function(
     #[cfg(not(feature = "shellcode"))]
     println!("Couldn't find the function: {:?}", function_name);
 
-    Err(Errors::ExportNotFound)
+    Err(RuntimeResolveErrors::ExportNotFound(function_name))
 }
