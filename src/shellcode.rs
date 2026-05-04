@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(ptr_cast_slice)]
+#![allow(non_snake_case)]
 // extern crate alloc;
 // extern crate core;
 // extern crate windows;
@@ -13,6 +14,8 @@ use core::{
 mod pe_types;
 mod peb_types;
 
+mod utils;
+
 mod runtime_resolve;
 use runtime_resolve::{get_dll_address, get_exported_function};
 use wstr_literal::wstr;
@@ -21,7 +24,7 @@ use wstr_literal::wstr;
 /// Entry point of the code
 ///
 /// This is a simple assembly routine, originally proposed
-/// by @mattitestation here: https://github.com/mattifestation/PIC_Bindshell/blob/master/PIC_Bindshell/AdjustStack.asm
+/// by @mattitestation here: <https://github.com/mattifestation/PIC_Bindshell/blob/master/PIC_Bindshell/AdjustStack.asm>
 /// It makes the stack 16 bytes aligned prior to calling the "real" entry point, because on x64 targets, it is needed
 /// so that the use of XMM registers don't crash. I removed the ret instruction, because as the asm in inside a
 /// function definition, the Rust compiler will insert a ret at the end of the function
@@ -57,30 +60,32 @@ pub extern "C" fn align_stack() -> i32 {
 pub extern "C" fn ExecutePayload() {
     let kernel32_address = match get_dll_address(wstr!("kernel32.dll").as_ptr()) {
         Ok(address) => address,
-        Err(error) => {
+        Err(_error) => {
             return;
         }
     };
 
     let LoadLibraryA_address = match get_exported_function(kernel32_address, c"LoadLibraryA") {
         Ok(func_address) => func_address,
-        Err(error) => {
+        Err(_error) => {
             return
         }
     };
 
-    let LoadLibraryA_func: fn(*const u8) -> *const c_void = unsafe { core::mem::transmute(LoadLibraryA_address) };
+    let LoadLibraryA_func: extern "C" fn(*const u8) -> *const c_void = unsafe { core::mem::transmute(LoadLibraryA_address) };
     let user32_address = LoadLibraryA_func(c"user32.dll".as_ptr().cast());
 
     let MessageBoxA_address = match get_exported_function(user32_address, c"MessageBoxA") {
         Ok(func_address) => func_address,
-        Err(error) => {
+        Err(_error) => {
             return;
         }
     };
 
-    let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 = unsafe { core::mem::transmute(MessageBoxA_address) };
-    let message_box_result = MessageBoxA_func(null_mut(), c"Hello World!".as_ptr().cast(), c"Wesh Alors".as_ptr().cast(), 0);
+    printf!(c"Hello there\n".as_ptr());
+
+    let MessageBoxA_func: extern "C" fn(*mut c_void, *const u8, *const u8, u32) -> i32 = unsafe { core::mem::transmute(MessageBoxA_address) };
+    MessageBoxA_func(null_mut(), c"Hello World!".as_ptr().cast(), c"Wesh Alors".as_ptr().cast(), 0);
 
     return;
 }
