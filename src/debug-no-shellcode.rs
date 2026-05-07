@@ -6,7 +6,7 @@
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 mod runtime_resolve;
-use runtime_resolve::{get_dll_address, get_exported_function};
+use runtime_resolve::{get_module_address, get_exported_symbol};
 
 mod pe_types;
 mod peb_types;
@@ -14,14 +14,13 @@ mod peb_types;
 use core::ffi::c_void;
 use core::ptr::null_mut;
 use std::error::Error;
-use wstr_literal::wstr;
 
 /// This function is simply here for debug purposes, when shellcode is not required to test some part of a code
 ///
-/// For now this function uses the get_dll_address and get_exported_function of the runtime_resolve module
+/// For now this function uses the get_module_address and get_exported_symbol of the runtime_resolve module
 /// to load User32.dll thanks to LoadLibraryA and then call MessageBoxA, doing all this shellcode compatible
 fn main() -> Result<(), Box<dyn Error>> {
-    let kernel32_address = match get_dll_address(wstr!("kernel32.dll").as_ptr()) {
+    let kernel32_address = match get_module_address("kernel32.dll") {
         Ok(address) => address,
         Err(error) => {
             println!("Couldn't retrieve kernel32.dll address, error: {:?}", error);
@@ -31,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("The address of kernel32.dll is: {:?}", kernel32_address);
 
-    let LoadLibraryA_address = match get_exported_function(kernel32_address, c"LoadLibraryA") {
+    let LoadLibraryA_address = match get_exported_symbol(kernel32_address, "LoadLibraryA") {
         Ok(func_address) => func_address,
         Err(error) => {
             println!("Couldn't retrieve LoadLibraryA address, error: {:?}", error);
@@ -50,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("The address of the User32.dll is: {:p}", user32_address);
 
-    let MessageBoxA_address = match get_exported_function(user32_address, c"MessageBoxA") {
+    let MessageBoxA_address = match get_exported_symbol(user32_address, "MessageBoxA") {
         Ok(func_address) => func_address,
         Err(error) => {
             println!("Couldn't retrieve MessageBoxA address, error: {:?}", error);

@@ -19,7 +19,7 @@ path = "src/debug-no-shellcode.rs"
 required-features = ["debug"]
 
 [dependencies]
-wstr-literal = "0.1"
+widestring = { version = "1.2.1", default-features = false }
 
 [features]
 shellcode = []
