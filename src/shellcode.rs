@@ -3,14 +3,15 @@
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 
-use core::{
-    arch::asm,
-    ffi::c_void,
-    ptr::null_mut,
-};
+use core::{arch::asm, ffi::c_void, ptr::null_mut};
+
+extern crate alloc;
+use alloc::vec::Vec;
 
 mod pe_types;
 mod peb_types;
+
+mod allocator;
 
 mod utils;
 
@@ -49,7 +50,7 @@ pub extern "C" fn align_stack() -> i32 {
 }
 
 /// This is the actual 'entrypoint' of the code.
-/// 
+///
 /// For now this function uses the get_dll_address and get_exported_function of the runtime_resolve module
 /// to load User32.dll thanks to LoadLibraryA and then call MessageBoxA, doing all this shellcode compatible
 #[unsafe(no_mangle)]
@@ -63,12 +64,11 @@ pub extern "C" fn ExecutePayload() {
 
     let LoadLibraryA_address = match get_exported_symbol(kernel32_address, "LoadLibraryA") {
         Ok(func_address) => func_address,
-        Err(_error) => {
-            return
-        }
+        Err(_error) => return,
     };
 
-    let LoadLibraryA_func: extern "C" fn(*const u8) -> *const c_void = unsafe { core::mem::transmute(LoadLibraryA_address) };
+    let LoadLibraryA_func: extern "C" fn(*const u8) -> *const c_void =
+        unsafe { core::mem::transmute(LoadLibraryA_address) };
     let user32_address = LoadLibraryA_func(c"user32.dll".as_ptr().cast());
 
     let MessageBoxA_address = match get_exported_symbol(user32_address, "MessageBoxA") {
@@ -78,8 +78,24 @@ pub extern "C" fn ExecutePayload() {
         }
     };
 
-    let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 = unsafe { core::mem::transmute(MessageBoxA_address) };
-    let message_box_result = MessageBoxA_func(null_mut(), c"Hello World!".as_ptr().cast(), c"Example".as_ptr().cast(), 0);
+    let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 =
+        unsafe { core::mem::transmute(MessageBoxA_address) };
+
+    // Simple example of using a Vector for checking that the Global Allocator effectively works
+    printf!(c"Just before creating Vec\n".as_ptr());
+    let mut vec = Vec::new();
+    printf!(c"Just after creating Vec\n".as_ptr());
+    vec.push(1);
+    printf!(c"Just after pushing to Vec\n".as_ptr());
+    vec.push(2);
+    printf!(c"Just after pushing to Vec second time\n".as_ptr());
+
+    MessageBoxA_func(
+        null_mut(),
+        c"Hello World!".as_ptr().cast(),
+        c"Example".as_ptr().cast(),
+        0,
+    );
 
     return;
 }
