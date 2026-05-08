@@ -1,6 +1,6 @@
 [env]
-CODEGEN_ARGS = "-Z unstable-options -C panic=immediate-abort -C link-arg=-nostdlib -C link-arg=-Wl,-T./Linker.ld,-s -C codegen-units=256"
-NIGHTLY_ARGS = "-Z build-std=core,panic_abort,compiler_builtins -Z build-std-features=compiler-builtins-mem"
+CODEGEN_ARGS = "-Z unstable-options -C panic=immediate-abort -C link-arg=-nostdlib -C link-arg=-Wl,-T./Linker.ld -C strip=symbols -C codegen-units=512 -C lto=yes -C embed-bitcode=yes -C opt-level=s"
+NIGHTLY_ARGS = "-Z build-std=core,alloc,compiler_builtins -Z build-std-features=compiler-builtins-mem"
 
 
 [tasks.windows_gnu_shellcode]

@@ -36,6 +36,7 @@ To contribute to the project, certain rules must be followed in order to not bre
 - Crates in general may be used if they expose a `no-std` feature, which makes them usable in a no std environment, such as the shellcode target, but it may break shellcode anyway so tread carefully
 - Every windows dependency should be resolved dynamically at runtime by using get_dll_address and get_exported_function functions. You can find them in the runtime_resolve module.
 - You should avoid global and static variable. Depending on what you are doing with it, it might because of compiler optimization, but you should avoid completely using it
+- Be careful when modifying the runtime_resolve module to not use anything related to the Global Allocator. Basically, anything from the alloc crate should be treated with great care. Problems may arise because using such structure and function from the alloc crate might trigger Global Allocator code, which in itself uses runtime_resolve module. This could end in an infinite loop. So you need to be really careful about modification in runtime resolve module
 
 ## Testing
 
