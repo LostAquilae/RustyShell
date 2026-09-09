@@ -9,8 +9,8 @@ use widestring::U16Str;
 use crate::pe_types::*;
 use crate::peb_types::*;
 
-/// A simple error enum that gives information regarding the error that could occur in the runtime_resolve module. 
-/// 
+/// A simple error enum that gives information regarding the error that could occur in the runtime_resolve module.
+///
 /// Using 'static lifetime is okay for now since we use string literals, which will reside in .rdata section, which
 /// is appended at the end of the .text section.
 #[derive(Debug)]
@@ -40,7 +40,9 @@ impl Display for RuntimeResolveErrors {
             RuntimeResolveErrors::ExportNotFound(symbol_name) => {
                 write!(f, "The function {:?} couldn't be found", symbol_name)
             }
-            RuntimeResolveErrors::ModuleNotFound(module_name) => write!(f, "The DLL {} couldn't be found", module_name),
+            RuntimeResolveErrors::ModuleNotFound(module_name) => {
+                write!(f, "The DLL {} couldn't be found", module_name)
+            }
             RuntimeResolveErrors::Unknown => write!(f, "Unknown error"),
         }
     }
@@ -131,7 +133,9 @@ impl Display for ModuleWideString<'_> {
 /// # Return value
 ///
 /// Returns a Result containing the raw pointer to the DLL or an error of type Errors
-pub fn get_module_address(module_name: &'static str) -> Result<*const c_void, RuntimeResolveErrors> {
+pub fn get_module_address(
+    module_name: &'static str,
+) -> Result<*const c_void, RuntimeResolveErrors> {
     // Getting PEB address from gs register
     let peb_address: *const PEB;
     unsafe { asm!("mov {}, gs:0x60", out(reg) peb_address) };
@@ -147,7 +151,7 @@ pub fn get_module_address(module_name: &'static str) -> Result<*const c_void, Ru
     {
         // Since LIST_ENTRY structure gives us a pointer toward another list entry in another LDR_DATA_TABLE_ENTRY,
         // it actually gives us a pointer with an offset of 16 bytes, since the first element of the LDR_DATA_TABLE_ENTRY
-        // is another list entry, which is the in load order list entry. Therefore, we need to substract 16 bytes to the pointer
+        // is another list entry, which is the in load order list entry. Therefore, we need to subtract 16 bytes to the pointer
         // given by the list_entry to point to the start of the LDR_DATA_TABLE_ENTRY structure
         let ldr_data_entry: *const LDR_DATA_TABLE_ENTRY =
             unsafe { core::mem::transmute(module_entry.byte_offset(-16)) };
@@ -364,7 +368,7 @@ pub fn get_exported_symbol(
                 // Retrieving the address of the module exporting the forwarded symbol export
                 let module_address = get_module_address(module_name)?;
 
-                // Recursive call 
+                // Recursive call
                 return get_exported_symbol(module_address, forwarded_symbol_name);
             }
         }

@@ -6,6 +6,7 @@
 use core::{arch::asm, ffi::c_void, ptr::null_mut};
 
 extern crate alloc;
+use alloc::format;
 use alloc::vec::Vec;
 
 mod pe_types;
@@ -16,7 +17,7 @@ mod allocator;
 mod utils;
 
 mod runtime_resolve;
-use runtime_resolve::{get_module_address, get_exported_symbol};
+use runtime_resolve::{get_exported_symbol, get_module_address};
 
 /// Entry point of the code
 ///
@@ -77,6 +78,11 @@ pub extern "C" fn ExecutePayload() {
             return;
         }
     };
+
+    // Simple example of using format macro, which generates vtable in the final binary
+    let test = 89;
+    let formatted_string = format!("The test value is: {}", test);
+    printf!(formatted_string.as_ptr());
 
     let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 =
         unsafe { core::mem::transmute(MessageBoxA_address) };
