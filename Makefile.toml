@@ -1,5 +1,5 @@
 [env]
-CODEGEN_ARGS = "-Z unstable-options -C panic=immediate-abort -C link-arg=-nostdlib -C link-arg=-Wl,-T./Linker.ld -C strip=symbols -C codegen-units=512 -C lto=yes -C embed-bitcode=yes -C opt-level=s"
+CODEGEN_ARGS = "-Z unstable-options -Z llvm-plugins=${PWD}/PC-relative_vtable_llvm_pass/bin/PC-relative-vtable.so -C passes=relative-vtable -C panic=immediate-abort -C link-arg=-nostdlib -C link-arg=-Wl,-T./Linker.ld -C strip=symbols -C codegen-units=512 -C lto=yes -C embed-bitcode=yes -C opt-level=s --emit=llvm-ir"
 NIGHTLY_ARGS = "-Z build-std=core,alloc,compiler_builtins -Z build-std-features=compiler-builtins-mem"
 
 
