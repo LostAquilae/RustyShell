@@ -6,7 +6,7 @@
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 mod runtime_resolve;
-use runtime_resolve::{get_module_address, get_exported_symbol};
+use runtime_resolve::{get_exported_symbol, get_module_address};
 
 mod pe_types;
 mod peb_types;

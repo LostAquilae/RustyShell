@@ -7,7 +7,7 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::runtime_resolve::{get_module_address, get_exported_symbol};
+use crate::runtime_resolve::{get_exported_symbol, get_module_address};
 
 pub const HEAP_ZERO_MEMORY: u32 = 0x00000008;
 
@@ -28,8 +28,7 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
         };
 
         // Retrieving GetProcessHeap address
-        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap")
-        {
+        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap") {
             Ok(func_address) => func_address,
             Err(_error) => {
                 return null_mut();
@@ -76,8 +75,7 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
         };
 
         // Retrieving GetProcessHeap address
-        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap")
-        {
+        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap") {
             Ok(func_address) => func_address,
             Err(_error) => {
                 return;
@@ -118,8 +116,7 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
         };
 
         // Retrieving GetProcessHeap address
-        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap")
-        {
+        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap") {
             Ok(func_address) => func_address,
             Err(_error) => {
                 return null_mut();
@@ -166,8 +163,7 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
         };
 
         // Retrieving GetProcessHeap address
-        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap")
-        {
+        let GetProcessHeap_address = match get_exported_symbol(kernel32_address, "GetProcessHeap") {
             Ok(func_address) => func_address,
             Err(_error) => {
                 return null_mut();
