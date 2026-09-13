@@ -19,6 +19,7 @@ mod peb_types;
 mod allocator;
 
 mod utils;
+use utils::printf;
 
 mod runtime_resolve;
 use runtime_resolve::{get_exported_symbol, get_module_address};
@@ -93,23 +94,19 @@ pub extern "C" fn ExecutePayload() {
     };
 
     // Simple example of using format macro, which generates vtable in the final binary
-    let test = 89;
-    let formatted_string = format!("The test value is: {}\n", test);
-    if let Ok(cstring) = CString::new(formatted_string) {
-        printf!(cstring.as_ptr());
-    }
+    printf(format!("The test value is: {}", 89));
 
     let MessageBoxA_func: winapi_bindings::MessageBoxA =
         unsafe { core::mem::transmute(MessageBoxA_address) };
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
-    printf!(c"Just before creating Vec\n".as_ptr());
+    printf("Just before creating Vec");
     let mut vec = Vec::new();
-    printf!(c"Just after creating Vec\n".as_ptr());
+    printf("Just after creating Vec");
     vec.push(1);
-    printf!(c"Just after pushing to Vec\n".as_ptr());
+    printf("Just after pushing to Vec");
     vec.push(2);
-    printf!(c"Just after pushing to Vec second time\n".as_ptr());
+    printf("Just after pushing to Vec second time");
 
     unsafe {
         MessageBoxA_func(
