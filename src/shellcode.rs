@@ -3,13 +3,17 @@
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 
-use core::{arch::asm, ffi::c_void, ptr::null_mut};
+use core::{
+    arch::asm,
+    ffi::c_void,
+    ptr::null_mut,
+};
 
 extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
+use alloc::ffi::CString;
 
-mod pe_types;
 mod peb_types;
 
 mod allocator;
@@ -18,6 +22,9 @@ mod utils;
 
 mod runtime_resolve;
 use runtime_resolve::{get_exported_symbol, get_module_address};
+
+// use windows_sys::Win32::System::LibraryLoader::LoadLibraryA;
+mod winapi_bindings;
 
 /// Entry point of the code
 ///
@@ -50,6 +57,11 @@ pub extern "C" fn align_stack() -> i32 {
     0
 }
 
+#[inline(always)]
+pub unsafe fn fn_cast<F>(raw: *const c_void, _proto: F) -> F {
+    unsafe { core::mem::transmute_copy(&raw) }
+}
+
 /// This is the actual 'entrypoint' of the code.
 ///
 /// For now this function uses the get_dll_address and get_exported_function of the runtime_resolve module
@@ -68,9 +80,10 @@ pub extern "C" fn ExecutePayload() {
         Err(_error) => return,
     };
 
-    let LoadLibraryA_func: extern "C" fn(*const u8) -> *const c_void =
+    let LoadLibraryA_func: winapi_bindings::LoadLibraryA =
         unsafe { core::mem::transmute(LoadLibraryA_address) };
-    let user32_address = LoadLibraryA_func(c"user32.dll".as_ptr().cast());
+
+    let user32_address = unsafe { LoadLibraryA_func(c"user32.dll".as_ptr().cast()) };
 
     let MessageBoxA_address = match get_exported_symbol(user32_address, "MessageBoxA") {
         Ok(func_address) => func_address,
@@ -81,10 +94,12 @@ pub extern "C" fn ExecutePayload() {
 
     // Simple example of using format macro, which generates vtable in the final binary
     let test = 89;
-    let formatted_string = format!("The test value is: {}", test);
-    printf!(formatted_string.as_ptr());
+    let formatted_string = format!("The test value is: {}\n", test);
+    if let Ok(cstring) = CString::new(formatted_string) {
+        printf!(cstring.as_ptr());
+    }
 
-    let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 =
+    let MessageBoxA_func: winapi_bindings::MessageBoxA =
         unsafe { core::mem::transmute(MessageBoxA_address) };
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
@@ -96,12 +111,14 @@ pub extern "C" fn ExecutePayload() {
     vec.push(2);
     printf!(c"Just after pushing to Vec second time\n".as_ptr());
 
-    MessageBoxA_func(
-        null_mut(),
-        c"Hello World!".as_ptr().cast(),
-        c"Example".as_ptr().cast(),
-        0,
-    );
+    unsafe {
+        MessageBoxA_func(
+            null_mut(),
+            c"Hello World!".as_ptr().cast(),
+            c"Example".as_ptr().cast(),
+            0,
+        );
+    }
 
     return;
 }

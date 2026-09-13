@@ -6,7 +6,13 @@ use core::fmt::{Display, Formatter};
 
 use widestring::U16Str;
 
-use crate::pe_types::*;
+use windows_sys::Win32::System::{
+    Diagnostics::Debug::{IMAGE_DIRECTORY_ENTRY_EXPORT, IMAGE_NT_HEADERS64},
+    SystemServices::{IMAGE_DOS_HEADER, IMAGE_EXPORT_DIRECTORY},
+    Threading::{PEB, PEB_LDR_DATA},
+    Kernel::LIST_ENTRY,
+};
+
 use crate::peb_types::*;
 
 /// A simple error enum that gives information regarding the error that could occur in the runtime_resolve module.
@@ -161,7 +167,7 @@ pub fn get_module_address(
         // assuming that every character in the WideString UTF-16 encoded will take only 16 bytes
         // since it is only module names on windows that should only have ASCII character
         let current_dll_name =
-            ModuleWideString::from_ptr(unsafe { (*ldr_data_entry).BaseDllName.Buffer.0 }, unsafe {
+            ModuleWideString::from_ptr(unsafe { (*ldr_data_entry).BaseDllName.Buffer }, unsafe {
                 usize::from((*ldr_data_entry).BaseDllName.Length / 2)
             });
 
@@ -239,7 +245,7 @@ pub fn get_exported_symbol(
 
     // Retrieving the export table information
     let data_directories = &nt_header.OptionalHeader.DataDirectory;
-    let image_export_directory = &data_directories[usize::from(IMAGE_DIRECTORY_ENTRY_EXPORT.0)];
+    let image_export_directory = &data_directories[usize::from(IMAGE_DIRECTORY_ENTRY_EXPORT)];
 
     // Checking for export table existence
     if image_export_directory.Size == 0 || image_export_directory.VirtualAddress == 0 {

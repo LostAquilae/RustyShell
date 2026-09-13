@@ -8,7 +8,6 @@
 mod runtime_resolve;
 use runtime_resolve::{get_exported_symbol, get_module_address};
 
-mod pe_types;
 mod peb_types;
 
 use core::ffi::c_void;
