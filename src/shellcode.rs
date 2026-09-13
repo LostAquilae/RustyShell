@@ -1,18 +1,17 @@
+//! This crate propose a shellcode template for Rust to use Rust programming language to build shellcode compatible binary
+//!
+//! This entrypoint is the one actually used for shellcode
+
 #![no_std]
 #![no_main]
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 
-use core::{
-    arch::asm,
-    ffi::c_void,
-    ptr::null_mut,
-};
+use core::{arch::asm, ffi::c_void, ptr::null_mut};
 
 extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
-use alloc::ffi::CString;
 
 mod peb_types;
 
@@ -24,7 +23,6 @@ use utils::printf;
 mod runtime_resolve;
 use runtime_resolve::{get_exported_symbol, get_module_address};
 
-// use windows_sys::Win32::System::LibraryLoader::LoadLibraryA;
 mod winapi_bindings;
 
 /// Entry point of the code
@@ -65,39 +63,23 @@ pub unsafe fn fn_cast<F>(raw: *const c_void, _proto: F) -> F {
 
 /// This is the actual 'entrypoint' of the code.
 ///
-/// For now this function uses the get_dll_address and get_exported_function of the runtime_resolve module
-/// to load User32.dll thanks to LoadLibraryA and then call MessageBoxA, doing all this shellcode compatible
+/// This function contains example code of what is available right now as shellcode compatible
 #[unsafe(no_mangle)]
 pub extern "C" fn ExecutePayload() {
-    let kernel32_address = match get_module_address("kernel32.dll") {
-        Ok(address) => address,
-        Err(_error) => {
-            return;
-        }
-    };
+    // Calling LoadLibraryA to load user32.dll in memory
+    let mut user32_address: *mut c_void = null_mut();
+    resolve_call_winapi!(
+        kernel32,
+        LoadLibraryA,
+        user32_address,
+        c"user32.dll".as_ptr().cast()
+    );
 
-    let LoadLibraryA_address = match get_exported_symbol(kernel32_address, "LoadLibraryA") {
-        Ok(func_address) => func_address,
-        Err(_error) => return,
-    };
-
-    let LoadLibraryA_func: winapi_bindings::LoadLibraryA =
-        unsafe { core::mem::transmute(LoadLibraryA_address) };
-
-    let user32_address = unsafe { LoadLibraryA_func(c"user32.dll".as_ptr().cast()) };
-
-    let MessageBoxA_address = match get_exported_symbol(user32_address, "MessageBoxA") {
-        Ok(func_address) => func_address,
-        Err(_error) => {
-            return;
-        }
-    };
-
-    // Simple example of using format macro, which generates vtable in the final binary
-    printf(format!("The test value is: {}", 89));
-
-    let MessageBoxA_func: winapi_bindings::MessageBoxA =
-        unsafe { core::mem::transmute(MessageBoxA_address) };
+    // Checking return value of LoadLibraryA
+    if user32_address.is_null() {
+        printf("Couldn't retrieve user32 address via LoadLibraryA");
+        return;
+    }
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
     printf("Just before creating Vec");
@@ -106,16 +88,28 @@ pub extern "C" fn ExecutePayload() {
     vec.push(1);
     printf("Just after pushing to Vec");
     vec.push(2);
-    printf("Just after pushing to Vec second time");
+    printf(format!(
+        "Just after pushing to Vec second time, its value is: {:?}",
+        vec
+    ));
 
-    unsafe {
-        MessageBoxA_func(
-            null_mut(),
-            c"Hello World!".as_ptr().cast(),
-            c"Example".as_ptr().cast(),
-            0,
-        );
-    }
+    // Example calling MessageBoxA
+    let mut result_message_box: i32 = 0;
+    call_winapi!(
+        user32_address,
+        MessageBoxA,
+        result_message_box,
+        null_mut(),
+        c"Hello World!".as_ptr().cast(),
+        c"Example".as_ptr().cast(),
+        0
+    );
+
+    // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
+    printf(format!(
+        "The value returned by MessageBoxA is: {}",
+        result_message_box
+    ));
 
     return;
 }

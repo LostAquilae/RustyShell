@@ -1,3 +1,7 @@
+//! This module provide function for resolving module and WINAPI function's addresses in memory
+//!
+//! We can't print anything here since it might ultimately call allocator, which in turn call this module, ending up in an infinite loop
+
 use core::arch::asm;
 use core::convert::TryFrom;
 use core::error::Error;
@@ -8,9 +12,9 @@ use widestring::U16Str;
 
 use windows_sys::Win32::System::{
     Diagnostics::Debug::{IMAGE_DIRECTORY_ENTRY_EXPORT, IMAGE_NT_HEADERS64},
+    Kernel::LIST_ENTRY,
     SystemServices::{IMAGE_DOS_HEADER, IMAGE_EXPORT_DIRECTORY},
     Threading::{PEB, PEB_LDR_DATA},
-    Kernel::LIST_ENTRY,
 };
 
 use crate::peb_types::*;
