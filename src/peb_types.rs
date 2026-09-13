@@ -1,8 +1,6 @@
 //! This module provides different structures for working with the PEB on Windows
 //!
-//! These structures have been taken from the Windows crate, which is written by developers at microfost directly
-//! to have maximum compatibility with Windows OS and respect the standard way of dealing with Windows.
-//! Most of these structure are undocumented or semi-documented.
+//! Structures defined here are the ones we need to redefine to access certain field that are marked as reserved in the windows crate
 
 use core::ffi::c_void;
 use windows_sys::Win32::{

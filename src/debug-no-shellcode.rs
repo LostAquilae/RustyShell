@@ -1,69 +1,73 @@
-//! This crate provides a full shellcode compatible loader to reflectively load any kind of PE
+//! This crate propose a shellcode template for Rust to use Rust programming language to build shellcode compatible binary
 //!
-//! It has 2 entrypoints, one with std loaded, for debug purposes and the other with
-//! no std and an assembly entrypoint for shellcode
+//! This entrypoint is the one used to test the code without shellcode
 
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
-mod runtime_resolve;
-use runtime_resolve::{get_exported_symbol, get_module_address};
-
-mod peb_types;
 
 use core::ffi::c_void;
 use core::ptr::null_mut;
+
 use std::error::Error;
+
+extern crate alloc;
+
+mod peb_types;
+
+mod utils;
+use utils::printf;
+
+mod runtime_resolve;
+use runtime_resolve::{get_exported_symbol, get_module_address};
+
+mod winapi_bindings;
 
 /// This function is simply here for debug purposes, when shellcode is not required to test some part of a code
 ///
-/// For now this function uses the get_module_address and get_exported_symbol of the runtime_resolve module
-/// to load User32.dll thanks to LoadLibraryA and then call MessageBoxA, doing all this shellcode compatible
+/// This function contains example code of what is available right now as shellcode compatible
 fn main() -> Result<(), Box<dyn Error>> {
-    let kernel32_address = match get_module_address("kernel32.dll") {
-        Ok(address) => address,
-        Err(error) => {
-            println!("Couldn't retrieve kernel32.dll address, error: {:?}", error);
-            return Err("Couldn't retrieve kernel32.dll address".into());
-        }
-    };
-
-    println!("The address of kernel32.dll is: {:?}", kernel32_address);
-
-    let LoadLibraryA_address = match get_exported_symbol(kernel32_address, "LoadLibraryA") {
-        Ok(func_address) => func_address,
-        Err(error) => {
-            println!("Couldn't retrieve LoadLibraryA address, error: {:?}", error);
-            return Err("Couldn't retrieve LoadLibraryA address".into());
-        }
-    };
-
-    println!(
-        "The address of the LoadLibraryA function is: {:?}",
-        LoadLibraryA_address
+    // Calling LoadLibraryA to load user32.dll in memory
+    let mut user32_address: *mut c_void = null_mut();
+    resolve_call_winapi!(
+        kernel32,
+        LoadLibraryA,
+        user32_address,
+        c"user32.dll".as_ptr().cast()
     );
 
-    let LoadLibraryA_func: fn(*const u8) -> *const c_void =
-        unsafe { core::mem::transmute(LoadLibraryA_address) };
-    let user32_address = LoadLibraryA_func(c"user32.dll".as_ptr().cast());
+    // Checking return value of LoadLibraryA
+    if user32_address.is_null() {
+        printf("Couldn't retrieve user32 address via LoadLibraryA");
+        return Ok(());
+    }
 
-    println!("The address of the User32.dll is: {:p}", user32_address);
+    // Simple example of using a Vector for checking that the Global Allocator effectively works
+    println!("Just before creating Vec");
+    let mut vec = Vec::new();
+    println!("Just after creating Vec");
+    vec.push(1);
+    println!("Just after pushing to Vec");
+    vec.push(2);
+    println!(
+        "Just after pushing to Vec second time, its value is: {:?}",
+        vec
+    );
 
-    let MessageBoxA_address = match get_exported_symbol(user32_address, "MessageBoxA") {
-        Ok(func_address) => func_address,
-        Err(error) => {
-            println!("Couldn't retrieve MessageBoxA address, error: {:?}", error);
-            return Err("Couldn't retrieve MessageBoxA address".into());
-        }
-    };
-
-    let MessageBoxA_func: fn(*mut c_void, *const u8, *const u8, u32) -> i32 =
-        unsafe { core::mem::transmute(MessageBoxA_address) };
-
-    MessageBoxA_func(
+    // Example calling MessageBoxA
+    let mut result_message_box: i32 = 0;
+    call_winapi!(
+        user32_address,
+        MessageBoxA,
+        result_message_box,
         null_mut(),
         c"Hello World!".as_ptr().cast(),
         c"Example".as_ptr().cast(),
-        0,
+        0
+    );
+
+    println!(
+        "The value returned by MessageBoxA is: {}",
+        result_message_box
     );
 
     Ok(())
