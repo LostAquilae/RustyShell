@@ -41,7 +41,7 @@ mod winapi_bindings;
 /// the .text section)
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]
-pub extern "C" fn align_stack() -> i32 {
+pub fn align_stack() -> i32 {
     unsafe {
         asm!(
             "push rsi",
@@ -65,7 +65,7 @@ pub unsafe fn fn_cast<F>(raw: *const c_void, _proto: F) -> F {
 ///
 /// This function contains example code of what is available right now as shellcode compatible
 #[unsafe(no_mangle)]
-pub extern "C" fn ExecutePayload() {
+pub fn ExecutePayload() {
     // Calling LoadLibraryA to load user32.dll in memory
     let mut user32_address: *mut c_void = null_mut();
     resolve_call_winapi!(

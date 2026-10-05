@@ -6,6 +6,12 @@
 
 Custom shellcode template in Rust
 
+## Requirements
+
+For this project, you need **rust nightly v0.100.0** with target triple **x86_64-pc-windows-gnu**. The project has only been compiled on Linux, so I would advised you use Linux.
+
+If you want to modify the LLVM Pass, you would need **LLVM v23.1**, which is the LLVM version used by rust nightly version 0.100.0
+
 ## Compiling
 
 Compiling the project is actually pretty straight forward. I use the Cargo make crate, which you can install by running the following command: 
@@ -24,23 +30,27 @@ cargo make windows_gnu_debug_no_shellcode # Compiling in debug mode not as shell
 
 Compiling in debug mode will add traces to the executable execution by gating the println! behind shellcode feature, which is explicitly disabled by this target.
 
-You also have the printf! macro you can use to print things while in shellcode, which will be made available with the debug shellcode target.
+You also have the printf function you can use to print things while in shellcode, which will be made available with the debug shellcode target.
 
-Compiling in shellcode mode actually gives you 2 output files: a .exe which is the full PE compiled and a .bin which is the .text section extracted, which gives you only the actual shellcode code that you can inject
+Compiling in shellcode mode actually gives you 2 output files: a **.exe** which is the full PE compiled and a **.bin** which is the *.text* section extracted, which gives you only the actual shellcode code that you can inject
 
 ## Contributing
 
 To contribute to the project, certain rules must be followed in order to not break the shellcode compatibility:
 
-- You should only rely on core and alloc crates for using rust standard library. The entry point for the shellcode target disables the std anyway so it won't compile if you include `use std` in your program. You can include `use core` or `use alloc` as you like though. For elements only present in the std crate, sorry but you can't use them
+- You should only rely on **core** and **alloc** crates for using rust standard library. The entry point for the shellcode target disables the std anyway so it won't compile if you include `use std` in your program. You can include `use core` or `use alloc` as you like though. For elements only present in the std crate, you can't use them
+
 - Crates in general may be used if they expose a `no-std` feature, which makes them usable in a no std environment, such as the shellcode target, but it may break shellcode anyway so tread carefully
+
 - Every windows dependency should be resolved dynamically at runtime by using get_dll_address and get_exported_function functions. You can find them in the runtime_resolve module.
-- You should avoid global and static variable. Depending on what you are doing with it, it might because of compiler optimization, but you should avoid completely using it
-- Be careful when modifying the runtime_resolve module to not use anything related to the Global Allocator. Basically, anything from the alloc crate should be treated with great care. Problems may arise because using such structure and function from the alloc crate might trigger Global Allocator code, which in itself uses runtime_resolve module. This could end in an infinite loop. So you need to be really careful about modification in runtime resolve module
+
+- You should avoid global and static variable. Depending on what you are doing with it, it might work because of compiler optimization, but you should avoid completely using it
+
+- Be careful when modifying the [runtime_resolve](src/runtime_resolve.rs) module to not use anything related to the Global Allocator. Basically, anything from the alloc crate should be treated with great care. Problems may arise because using such structure and function from the alloc crate might trigger Global Allocator code, which in itself uses runtime_resolve module. This could end in an infinite loop. So you need to be really careful about modification in runtime_resolve module
 
 ## Macro system
 
-A macro system is available throughout the project. They are defined inside the utils module. There are 2 different macros:
+A macro system is available throughout the project. They are defined inside the [utils](src/utils.rs) module. There are 2 different macros:
 
 - **resolve_call_winapi**: This macro resolve the module address and the function's address altogether and then call the function. It can be called like this:
 
