@@ -1,5 +1,6 @@
 <p align="center">
     <img src="./rsc/RustyShell.png" width="700">
+    <figcaption style="text-align: center">AI-generated image. Research (code and writing) remains fully human-made.</figcaption>
 </p>
 
 # RustyShell
@@ -8,7 +9,7 @@ Custom shellcode template in Rust
 
 ## Requirements
 
-For this project, you need **rust nightly v0.100.0** with target triple **x86_64-pc-windows-gnu**. The project has only been compiled on Linux, so I would advised you use Linux.
+For this project, you need **rust nightly v0.100.0** with target triple **x86_64-pc-windows-gnu**. The project has only been compiled on Linux, so I would advise you use Linux.
 
 If you want to modify the LLVM Pass, you would need **LLVM v23.1**, which is the LLVM version used by rust nightly version 0.100.0
 
@@ -42,7 +43,7 @@ To contribute to the project, certain rules must be followed in order to not bre
 
 - Crates in general may be used if they expose a `no-std` feature, which makes them usable in a no std environment, such as the shellcode target, but it may break shellcode anyway so tread carefully
 
-- Every windows dependency should be resolved dynamically at runtime by using get_dll_address and get_exported_function functions. You can find them in the runtime_resolve module.
+- Every Windows dependency should be resolved dynamically at runtime by using get_dll_address and get_exported_function functions. You can find them in the runtime_resolve module.
 
 - You should avoid global and static variable. Depending on what you are doing with it, it might work because of compiler optimization, but you should avoid completely using it
 
@@ -64,7 +65,7 @@ A macro system is available throughout the project. They are defined inside the 
     );
 ```
 
-- **call_winapi**: It does practically the same, except the module address has to be already resolved. It is useful when several functions from same module needs to be called, to avoid resolving every time the module address, you resolve it once and you pass the address to each call:
+- **call_winapi**: It does practically the same, except the module address has to be already resolved. It is useful when several functions from same module needs to be called, to avoid resolving every time the module address, you resolve it once, and you pass the address to each call:
 
 ```rust
     // Retrieving kernel32_address thanks to get_module_address before calling call_winapi
@@ -86,4 +87,4 @@ A macro system is available throughout the project. They are defined inside the 
 
 ## Testing
 
-For debug purposes, you now have the printf macro you can use. You should use it just like printf in C as it actually calls the printf implementation from msvcrt.dll. You can use C String literal combined with the as_ptr() method to provide the string to be formatted, along with values you want to format. You can also use println! macro if you gate behind condition compilation on shellcode feature not being enabled for the no shellcode debug target for easier printing.
+For debug purposes, you now have the printf function available. You should use it with the format! macro to format strings before passing it to the function. You can also use println! macro if you gate behind condition compilation on shellcode feature not being enabled for the no shellcode debug target for easier printing.
