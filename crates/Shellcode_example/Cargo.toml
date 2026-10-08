@@ -1,0 +1,22 @@
+[package]
+name = "shellcode_example"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "Shellcode"
+path = "src/shellcode.rs"
+
+[[bin]]
+name = "Shellcode_debug"
+path = "src/shellcode.rs"
+required-features = ["debug"]
+
+[dependencies]
+rusty_shell = { path = "../RustyShell" }
+
+[build-dependencies]
+windows-bindgen = { version = "0.100" }
+
+[features]
+debug = ["rusty_shell/debug"]

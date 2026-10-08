@@ -1,0 +1,15 @@
+[package]
+name = "no_shellcode_example"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "No_shellcode"
+path = "src/no_shellcode.rs"
+
+[dependencies]
+# RustyShell = { path = "../RustyShell", features = ["debug"] }
+rusty_shell = { path = "../RustyShell", features = ["debug"], default-features = false }
+
+[build-dependencies]
+windows-bindgen = { version = "0.100" }

@@ -1,6 +1,7 @@
 //! This module provide function for resolving module and WINAPI function's addresses in memory
 //!
-//! We can't print anything here since it might ultimately call allocator, which in turn call this module, ending up in an infinite loop
+//! We can't print anything here since it might ultimately call allocator, which in turn call this module, ending up in an infinite loop.
+//! That's why we use println! when the shellcode feature is disabled, so that we can still prints for debug purposes
 
 use core::arch::asm;
 use core::convert::TryFrom;

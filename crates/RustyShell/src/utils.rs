@@ -3,7 +3,11 @@
 //! Functions and structures defined here are useful functions
 //! that can be used throughout the code.
 
+#[cfg(feature = "shellcode")]
 use alloc::vec::Vec;
+
+#[cfg(not(feature = "shellcode"))]
+use std::vec::Vec;
 
 /// Function to resolve printf function at runtime and use it for debug purposes in shellcode target
 ///
@@ -16,8 +20,14 @@ use alloc::vec::Vec;
 #[cfg(feature = "debug")]
 pub fn printf<T: Into<Vec<u8>>>(string: T) {
     use crate::runtime_resolve::{get_exported_symbol, get_module_address};
+
+    #[cfg(feature = "shellcode")]
     use alloc::ffi::CString;
+    #[cfg(feature = "shellcode")]
     use core::ffi::c_void;
+
+    #[cfg(not(feature = "shellcode"))]
+    use std::ffi::{c_void, CString};
     // Retrieving
     if let Ok(cstring) = CString::new(string) {
         if let Ok(kernel32_address) = get_module_address("kernel32.dll") {

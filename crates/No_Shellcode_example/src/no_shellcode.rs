@@ -1,8 +1,6 @@
 //! This crate propose a shellcode template for Rust to use Rust programming language to build shellcode compatible binary
 //!
 //! This entrypoint is the one used to test the code without shellcode
-
-#![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 
 use core::ffi::c_void;
@@ -12,13 +10,9 @@ use std::error::Error;
 
 extern crate alloc;
 
-mod peb_types;
-
-mod utils;
-use utils::printf;
-
-mod runtime_resolve;
-use runtime_resolve::{get_exported_symbol, get_module_address};
+use rusty_shell::utils::printf;
+use rusty_shell::{resolve_call_winapi, call_winapi};
+use rusty_shell::runtime_resolve::{get_exported_symbol, get_module_address};
 
 mod winapi_bindings;
 
@@ -26,6 +20,7 @@ mod winapi_bindings;
 ///
 /// This function contains example code of what is available right now as shellcode compatible
 fn main() -> Result<(), Box<dyn Error>> {
+    println!("First instruction");
     // Calling LoadLibraryA to load user32.dll in memory
     let mut user32_address: *mut c_void = null_mut();
     resolve_call_winapi!(
