@@ -4,7 +4,6 @@
 
 #![no_std]
 #![no_main]
-#![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 
 use core::{arch::asm, ffi::c_void, ptr::null_mut};
@@ -13,15 +12,9 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
 
-mod peb_types;
-
-mod allocator;
-
-mod utils;
-use utils::printf;
-
-mod runtime_resolve;
-use runtime_resolve::{get_exported_symbol, get_module_address};
+use rusty_shell::utils::printf;
+use rusty_shell::{resolve_call_winapi, call_winapi};
+use rusty_shell::runtime_resolve::{get_exported_symbol, get_module_address};
 
 mod winapi_bindings;
 

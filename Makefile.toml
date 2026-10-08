@@ -2,25 +2,28 @@
 CODEGEN_ARGS = "-Z unstable-options -Z llvm-plugins=${PWD}/PC-relative_vtable_llvm_pass/bin/PC-relative-vtable.so -C passes=relative-vtable -C panic=immediate-abort -C link-arg=-nostdlib -C link-arg=-Wl,-T./Linker.ld -C strip=symbols -C codegen-units=512 -C lto=yes -C embed-bitcode=yes -C opt-level=s --emit=llvm-ir"
 NIGHTLY_ARGS = "-Z build-std=core,alloc,compiler_builtins -Z build-std-features=compiler-builtins-mem"
 
+[config]
+default_to_workspace = false
+
 
 [tasks.windows_gnu_shellcode]
 description = "Cross compiling using gnu target in shellcode"
 script = [
-    "cargo +nightly build --target x86_64-pc-windows-gnu --bin RustyShell_shellcode --features shellcode --release ${NIGHTLY_ARGS}",
-    "objcopy -O binary --only-section=.text ./target/x86_64-pc-windows-gnu/release/RustyShell_shellcode.exe ./target/x86_64-pc-windows-gnu/release/RustyShell_shellcode.bin"
+    "cargo +nightly build --target x86_64-pc-windows-gnu --package shellcode_example --bin Shellcode --release ${NIGHTLY_ARGS}",
+    "objcopy -O binary --only-section=.text ./target/x86_64-pc-windows-gnu/release/Shellcode.exe ./target/x86_64-pc-windows-gnu/release/Shellcode.bin"
 ]
 env = { "RUSTFLAGS" = "${CODEGEN_ARGS}"}
 
 [tasks.windows_gnu_shellcode_debug]
 description = "Cross compiling using gnu target in shellcode with debug"
 script = [
-    "cargo +nightly build --target x86_64-pc-windows-gnu --bin RustyShell_shellcode_debug --features shellcode,debug --release ${NIGHTLY_ARGS}",
-    "objcopy -O binary --only-section=.text ./target/x86_64-pc-windows-gnu/release/RustyShell_shellcode_debug.exe ./target/x86_64-pc-windows-gnu/release/RustyShell_shellcode_debug.bin"
+    "cargo +nightly build --target x86_64-pc-windows-gnu --package shellcode_example --bin Shellcode_debug --features debug --release ${NIGHTLY_ARGS}",
+    "objcopy -O binary --only-section=.text ./target/x86_64-pc-windows-gnu/release/Shellcode_debug.exe ./target/x86_64-pc-windows-gnu/release/Shellcode_debug.bin"
 ]
 env = { "RUSTFLAGS" = "${CODEGEN_ARGS}"}
 
 [tasks.windows_gnu_debug_no_shellcode]
 description = "Cross compiling using gnu target not in shellcode with debug"
 script = [
-    "cargo +nightly build --target x86_64-pc-windows-gnu --bin RustyShell_debug_no_shellcode --features debug --release"
+    "cargo +nightly build --target x86_64-pc-windows-gnu --package no_shellcode_example --bin No_shellcode --release"
 ]
