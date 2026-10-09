@@ -13,3 +13,4 @@ rusty_shell = { path = "../RustyShell", features = ["debug"], default-features =
 
 [build-dependencies]
 windows-bindgen = { version = "0.100" }
+regex = { version = "1.13.1" }
