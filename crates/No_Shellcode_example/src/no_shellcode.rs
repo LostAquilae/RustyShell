@@ -9,7 +9,6 @@ use std::error::Error;
 
 extern crate alloc;
 
-use rusty_shell::utils::printf;
 use rusty_shell::{call_winapi, resolve_call_winapi};
 
 mod winapi_bindings;
@@ -28,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Checking return value of LoadLibraryA
     if user32_address.is_null() {
-        printf("Couldn't retrieve user32 address via LoadLibraryA");
+        println!("Couldn't retrieve user32 address via LoadLibraryA");
         return Ok(());
     }
 

@@ -5,6 +5,7 @@
 #![no_std]
 #![no_main]
 #![allow(non_snake_case)]
+#![allow(unused)]
 
 use core::{arch::asm, ffi::c_void, ptr::null_mut};
 
@@ -12,8 +13,7 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
 
-use rusty_shell::utils::printf;
-use rusty_shell::{call_winapi, resolve_call_winapi};
+use rusty_shell::{call_winapi, resolve_call_winapi, printf};
 
 mod winapi_bindings;
 
@@ -69,26 +69,26 @@ pub fn ExecutePayload() {
     let user32_address = match user32_address {
         Ok(address) => {
             if address.is_null() {
-                printf("Couldn't retrieve user32.dll's address");
+                printf!("Couldn't retrieve user32.dll's address");
                 return;
             }
 
             address
         }
         Err(error) => {
-            printf(format!("Couldn't retrieve user32_address, error: {}", error));
+            printf!(format!("Couldn't retrieve user32_address, error: {}", error));
             return;
         }
     };
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
-    printf("Just before creating Vec");
+    printf!("Just before creating Vec");
     let mut vec = Vec::new();
-    printf("Just after creating Vec");
+    printf!("Just after creating Vec");
     vec.push(1);
-    printf("Just after pushing to Vec");
+    printf!("Just after pushing to Vec");
     vec.push(2);
-    printf(format!(
+    printf!(format!(
         "Just after pushing to Vec second time, its value is: {:?}",
         vec
     ));
@@ -107,13 +107,13 @@ pub fn ExecutePayload() {
     match result_message_box {
         Ok(message_box_return_value) => {
             // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
-            printf(format!(
+            printf!(format!(
                 "The value returned by MessageBoxA is: {}",
                 message_box_return_value
             ));
         }
         Err(error) => {
-            printf(format!("Couldn't call MessageBoxA, error: {}", error));
+            printf!(format!("Couldn't call MessageBoxA, error: {}", error));
         }
     }
 
