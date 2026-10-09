@@ -9,5 +9,9 @@ extern crate alloc;
 pub mod allocator;
 
 mod peb_types;
+
+#[cfg(feature = "shellcode")]
+mod winapi_bindings;
+
 pub mod runtime_resolve;
 pub mod utils;
