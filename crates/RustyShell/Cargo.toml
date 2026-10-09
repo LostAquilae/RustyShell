@@ -6,6 +6,7 @@ repository = "https://github.com/LostAquilae/RustyShell"
 readme = "README.md"
 keywords = ["maldev", "shellcode", "positionindependent"]
 categories = ["no-std", "security"]
+license-file = "LICENSE"
 edition = "2024"
 
 [dependencies]
