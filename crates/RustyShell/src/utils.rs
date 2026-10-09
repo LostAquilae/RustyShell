@@ -27,7 +27,7 @@ pub fn printf<T: Into<Vec<u8>>>(string: T) {
     use core::ffi::c_void;
 
     #[cfg(not(feature = "shellcode"))]
-    use std::ffi::{c_void, CString};
+    use std::ffi::{CString, c_void};
     // Retrieving
     if let Ok(cstring) = CString::new(string) {
         if let Ok(kernel32_address) = get_module_address("kernel32.dll") {
@@ -70,15 +70,15 @@ pub fn printf<T: Into<Vec<u8>>>(_string: T) {}
 #[macro_export]
 macro_rules! resolve_call_winapi {
     ($module:ident, $winapi:ident, $result:ident, $($args:tt)*) => {
-        if let Ok(module_address) = get_module_address(core::concat!(core::stringify!($module), ".dll")) {
-            if let Ok(winapi_address) = get_exported_symbol(module_address, core::stringify!($winapi)) {
+        if let Ok(module_address) = $crate::runtime_resolve::get_module_address(core::concat!(core::stringify!($module), ".dll")) {
+            if let Ok(winapi_address) = $crate::runtime_resolve::get_exported_symbol(module_address, core::stringify!($winapi)) {
                 let winapi_func: winapi_bindings::$winapi = unsafe { core::mem::transmute(winapi_address) };
                 $result = unsafe { winapi_func($($args)*) }
             } else {
-                printf(format!("Couldn't resolve {} function", core::stringify!($winapi)));
+                $crate::utils::printf(format!("Couldn't resolve {} function", core::stringify!($winapi)));
             }
         } else {
-            printf(format!("Couldn't resolve {} module", core::concat!(core::stringify!($module), ".dll")));
+            $crate::utils::printf(format!("Couldn't resolve {} module", core::concat!(core::stringify!($module), ".dll")));
         }
     }
 }
@@ -98,11 +98,11 @@ macro_rules! resolve_call_winapi {
 #[macro_export]
 macro_rules! call_winapi {
     ($module_address:ident, $winapi:ident, $result:ident, $($args:tt)*) => {
-        if let Ok(winapi_address) = get_exported_symbol($module_address, core::stringify!($winapi)) {
+        if let Ok(winapi_address) = $crate::runtime_resolve::get_exported_symbol($module_address, core::stringify!($winapi)) {
             let winapi_func: winapi_bindings::$winapi = unsafe { core::mem::transmute(winapi_address) };
             $result = unsafe { winapi_func($($args)*) };
         } else {
-            printf(format!("Couldn't resolve {} function", core::stringify!($winapi)));
+            $crate::utils::printf(format!("Couldn't resolve {} function", core::stringify!($winapi)));
         }
     };
 }

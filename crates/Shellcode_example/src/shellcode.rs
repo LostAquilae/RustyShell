@@ -13,8 +13,7 @@ use alloc::format;
 use alloc::vec::Vec;
 
 use rusty_shell::utils::printf;
-use rusty_shell::{resolve_call_winapi, call_winapi};
-use rusty_shell::runtime_resolve::{get_exported_symbol, get_module_address};
+use rusty_shell::{call_winapi, resolve_call_winapi};
 
 mod winapi_bindings;
 
