@@ -16,15 +16,20 @@
 macro_rules! printf {
     ($arg:expr) => {
         if let Ok(cstring) = alloc::ffi::CString::new($arg) {
-            if let Ok(kernel32_address) = $crate::runtime_resolve::get_module_address("kernel32.dll") {
-                if let Ok(LoadLibraryA_address) = $crate::runtime_resolve::get_exported_symbol(kernel32_address, "LoadLibraryA")
+            if let Ok(kernel32_address) =
+                $crate::runtime_resolve::get_module_address("kernel32.dll")
+            {
+                if let Ok(LoadLibraryA_address) =
+                    $crate::runtime_resolve::get_exported_symbol(kernel32_address, "LoadLibraryA")
                 {
                     let LoadLibraryA_func: extern "C" fn(*const u8) -> *const core::ffi::c_void =
                         unsafe { core::mem::transmute(LoadLibraryA_address) };
                     let msvcrt_address = LoadLibraryA_func(c"msvcrt.dll".as_ptr().cast());
 
                     if !msvcrt_address.is_null() {
-                        if let Ok(printf_address) = $crate::runtime_resolve::get_exported_symbol(msvcrt_address, "printf") {
+                        if let Ok(printf_address) =
+                            $crate::runtime_resolve::get_exported_symbol(msvcrt_address, "printf")
+                        {
                             let printf_func: extern "C" fn(...) -> i32 =
                                 unsafe { core::mem::transmute(printf_address) };
                             printf_func(cstring.as_ptr());
@@ -34,7 +39,7 @@ macro_rules! printf {
                 }
             }
         }
-    }
+    };
 }
 
 /// Version of the printf function that does nothing. This is here to avoid compilation error when not compiling in debug mode
@@ -42,9 +47,7 @@ macro_rules! printf {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules! printf {
-    ($arg:expr) => {
-
-    }
+    ($arg:expr) => {};
 }
 
 /// Macro to resolve a module and call a WINAPI inside that module without all the overhead of calling every function and checking every return value
@@ -90,6 +93,6 @@ macro_rules! call_winapi {
                 unsafe { winapi_func($($args,)*) }
             })
         }
-        
+
     };
 }

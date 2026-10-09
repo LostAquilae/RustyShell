@@ -6,8 +6,8 @@ use core::{
     ptr::null_mut,
 };
 
-use crate::runtime_resolve::get_module_address;
 use crate::call_winapi;
+use crate::runtime_resolve::get_module_address;
 
 use windows_sys::Win32::System::Memory::HEAP_ZERO_MEMORY;
 
@@ -47,9 +47,11 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
             return null_mut();
         };
 
-        // Calling HeapAlloc function to allocate the requested memory block. 
+        // Calling HeapAlloc function to allocate the requested memory block.
         // We Return directly the return value of HeapAlloc call. No need to check return value since return null is intended behavior to say allocation failed
-        call_winapi!(kernel32_address, HeapAlloc, process_heap_handle, 0, size).unwrap_or(null_mut()).cast()
+        call_winapi!(kernel32_address, HeapAlloc, process_heap_handle, 0, size)
+            .unwrap_or(null_mut())
+            .cast()
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
@@ -76,7 +78,13 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
         };
 
         // Calling HeapFree to free the requested memory block
-        let _ = call_winapi!(kernel32_address, HeapFree, process_heap_handle, 0, ptr.cast());
+        let _ = call_winapi!(
+            kernel32_address,
+            HeapFree,
+            process_heap_handle,
+            0,
+            ptr.cast()
+        );
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
@@ -110,7 +118,15 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
 
         // Calling HeapAlloc function to allocate the requested memory block, specifically indicating we want memory that is zero-initialized
         // Returning directly the return value of HeapAlloc call. No need to check return value since return null is intended behavior to say allocation failed
-        call_winapi!(kernel32_address, HeapAlloc, process_heap_handle, HEAP_ZERO_MEMORY, size).unwrap_or(null_mut()).cast()
+        call_winapi!(
+            kernel32_address,
+            HeapAlloc,
+            process_heap_handle,
+            HEAP_ZERO_MEMORY,
+            size
+        )
+        .unwrap_or(null_mut())
+        .cast()
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, _layout: Layout, new_size: usize) -> *mut u8 {
@@ -143,6 +159,15 @@ unsafe impl GlobalAlloc for ShellcodeCompatibleAllocator {
 
         // Calling HeapReAlloc function to reallocate the requested memory block
         // Returning directly the return value of HeapAlloc call. No need to check return value since return null is intended behavior to say allocation failed
-        call_winapi!(kernel32_address, HeapReAlloc, process_heap_handle, 0, ptr.cast(), new_size).unwrap_or(null_mut()).cast()
+        call_winapi!(
+            kernel32_address,
+            HeapReAlloc,
+            process_heap_handle,
+            0,
+            ptr.cast(),
+            new_size
+        )
+        .unwrap_or(null_mut())
+        .cast()
     }
 }
