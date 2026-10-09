@@ -59,19 +59,27 @@ pub unsafe fn fn_cast<F>(raw: *const c_void, _proto: F) -> F {
 #[unsafe(no_mangle)]
 pub fn ExecutePayload() {
     // Calling LoadLibraryA to load user32.dll in memory
-    let mut user32_address: *mut c_void = null_mut();
-    resolve_call_winapi!(
+    let user32_address = resolve_call_winapi!(
         kernel32,
         LoadLibraryA,
-        user32_address,
         c"user32.dll".as_ptr().cast()
     );
 
-    // Checking return value of LoadLibraryA
-    if user32_address.is_null() {
-        printf("Couldn't retrieve user32 address via LoadLibraryA");
-        return;
-    }
+    // Ensuring no error happened, either in runtime_resolve.rs or LoadLibraryA
+    let user32_address = match user32_address {
+        Ok(address) => {
+            if address.is_null() {
+                printf("Couldn't retrieve user32.dll's address");
+                return;
+            }
+
+            address
+        }
+        Err(error) => {
+            printf(format!("Couldn't retrieve user32_address, error: {}", error));
+            return;
+        }
+    };
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
     printf("Just before creating Vec");
@@ -86,22 +94,28 @@ pub fn ExecutePayload() {
     ));
 
     // Example calling MessageBoxA
-    let mut result_message_box: i32 = 0;
-    call_winapi!(
+    let result_message_box = call_winapi!(
         user32_address,
         MessageBoxA,
-        result_message_box,
         null_mut(),
         c"Hello World!".as_ptr().cast(),
         c"Example".as_ptr().cast(),
         0
     );
 
-    // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
-    printf(format!(
-        "The value returned by MessageBoxA is: {}",
-        result_message_box
-    ));
+    // Printing the return value of MessageBoxA
+    match result_message_box {
+        Ok(message_box_return_value) => {
+            // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
+            printf(format!(
+                "The value returned by MessageBoxA is: {}",
+                message_box_return_value
+            ));
+        }
+        Err(error) => {
+            printf(format!("Couldn't call MessageBoxA, error: {}", error));
+        }
+    }
 
     return;
 }
