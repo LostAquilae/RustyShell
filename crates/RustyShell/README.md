@@ -52,6 +52,80 @@ A macro system is available throughout the project. They are defined inside the 
 
 Their return value is a Result containing either the WINAPI return value on success, or a RuntimeResolveErrors on error. You need to handle the Result before accessing the WINAPI return value.
 
+## How to use this crate ?
+
+This crate is used to target shellcode compatible binaries. This implies that your own code must respect some conditions. I made en extended blog posts here that really depicts how the crate work [here](https://lostaquilae.github.io/LostAquilae_blog/writing/RustyShell-part-1/). But here's a sum up of what you will need.
+
+### Specific entry point
+
+Here is the minimal code you will need to use this crate:
+
+```rust
+#![no_std]
+#![no_main]
+
+/// Entry point of the code
+///
+/// This is a simple assembly routine, originally proposed
+/// by @mattitestation here: <https://github.com/mattifestation/PIC_Bindshell/blob/master/PIC_Bindshell/AdjustStack.asm>
+/// It makes the stack 16 bytes aligned prior to calling the "real" entry point, because on x64 targets, it is needed
+/// so that the use of XMM registers don't crash.
+#[unsafe(no_mangle)]
+#[unsafe(link_section = ".text.entry")]
+pub fn align_stack() -> i32 {
+    unsafe {
+        asm!(
+            "push rsi",
+            "mov rsi, rsp",
+            "and rsp, 0x0FFFFFFFFFFFFFFF0",
+            "sub rsp, 0x020",
+            "call ExecutePayload",
+            "mov rsp, rsi",
+            "pop rsi"
+        );
+    }
+    0
+}
+
+/// Your real entry point
+#[unsafe(no_mangle)]
+pub fn ExecutePayload() {
+
+}
+```
+
+### Compilation flags
+
+- **Z unstable-options**: This flag is to enable unstable flags that exist in the Rust compiler. It simply allows us to use other flags.
+
+- **-Z llvm-plugins=${PWD}/PC-relative-vtable.so**: This flag is here to load the LLVM plugin inside the Rust compiler, so that we can call the optimization. You can find the LLVM Pass file [here](https://github.com/LostAquilae/RustyShell/blob/main/PC-relative_vtable_llvm_pass/bin/PC-relative-vtable.so).
+
+- **-C passes=relative-vtable**: Inside the **LLVM Pass**, I named the optimization **relative-vtable**. **-C passes=name** is here to specifically request optimization from LLVM, because LLVM comes with lots of optimization already bundled. But thanks to the previous flag, we have loaded our own LLVM Pass, so we call optimization from it right away.
+
+- **--emit=llvm-ir**: This flag actually tells the rust compiler to emit LLVM IR files with the **LLVM IR** generated from your code so that you can take a look at it. It needs to be enabled for the LLVM Pass modification to take effect.
+
+- **-C panic=immediate-abort**: This is actually a new panic method, where you can simply say you want to interrupt execution upon panicking. Before, you had to propose your own function to define the panicking behavior. With this flag, you don't have to anymore if you just want to abort execution.
+
+- **-C link-arg=-nostdlib**: This flag tells the linker to not include any standard library. Like we said before, when compiling your program, a lot of code you didn't write gets included in the final binary, serving several purposes. But we don't want any of this for shellcode compatibility, so we ask the linker to not include any of this.
+
+- **-C codegen-units=512**: This flag is a bit more complicated. When your code is transformed by the compiler, it will be transformed into object files. This flag controls how many *units* the code will be split into. For example, when compiling the core library, setting this to 1 will make one big object file with everything from the core library in it. Depending on this static library means that all the code from the core library will end up in your binary. Putting a great number, like 512, means splitting the core library into 512 different *units*, meaning you will end up with 512 object files. Depending on this library, the linker will only include the object files containing the symbols you really need. So why do we put a great number here? Because it allows us to have a small binary in the end. The more *units* you have, the more fine-grained control the linker have to only include what is of interest to you, reducing the size of your binary. When we are talking about payloads, we want them as small as possible. For this template, we are recompiling the core, alloc, and compiler_builtins crate. We put 512 to have the maximum codegen *units* on each of these crates. This depends on the crate size, a crate has a maximum number of splitting it can take.
+
+- **-C link-arg=-Wl,-T./Linker.ld**: This flag just tells the Rust compiler to include a linker script at the linking stage. We are using the target triple *x86_64-pc-windows-gnu*, which relies on mingw for linking. The linker script, you can find [here](https://github.com/LostAquilae/RustyShell/blob/main/Linker.ld).
+
+- **-C strip=symbols**: This is equivalent to -s for the gnu linker *ld*. It tells the linker to remove debugging info and the symbol table from the executable. These are not needed for correct execution of the binary, it's just metadata we can remove.
+
+- **-C lto=yes**: This enables *link time optimization*. You might think this is about the mingw linker, but it is actually for LLVM. LLVM is a compiler backend for many languages. It provides an *intermediate language* frontend compiler will turn your code into. Then, LLVM takes care of optimizations on this intermediate representation. This flag tells LLVM to enable lto for your build. If you want to learn more about lto: [Link-time optimization (LTO)](https://convolv.es/guides/lto/). For now, you just need to understand that it allows us to better optimize the binary in terms of size and execution speed.
+
+- **-C embed-bitcode=yes**: It tells the rust compiler to embedded LLVM bitcode inside the object files. It is needed for **fat lto**, which is enabled with the previous flag.
+
+- **-C opt-level=s**: This flag controls the optimization to be used. -s value specifically enable optimizations for binary size.
+
+- **-Z build-std=core,alloc,compiler_builtins**: This flag tells the compiler to rebuild the core, alloc and compiler_builtins crate. This is needed, since we enabled the panic immediate-abort panicking behavior, which is not the already precompiled behavior standards crate are shipped with, hence, the need to recompile them.
+
+- **-Z build-std-features=compiler-builtins-mem**: This allows the compiler_builtins crate to propose standard builtins memory function, so that we don't have to redefine them. They are needed for all kind of things, and your linker might tell you it misses a definition for it. When working with C style null terminated string, your rust code might try to call strlen for example, and you would have to define it yourself, since we ask for no std lib. But enabling this flag allows the compiler_builtins crate to propose out of the box an implementation for these kinds of functions, so you don't have to write your own implementation.
+
+With all of this, you should be able to compile your code as shellcode right away, with all the core and alloc crate available to you.
+
 ## Testing
 
-For debug purposes, you now have the printf function available. You should use it with the format! macro to format strings before passing it to the function. You can also use println! macro if you gate behind condition compilation on shellcode feature not being enabled for the no shellcode debug target for easier printing.
+For debug purposes, you now have the printf macro available. You scan either use it with a string literal directly, or with the format! macro to format a string. You can also use println! macro if you gate behind condition compilation on shellcode feature not being enabled for the no shellcode debug target for easier printing.

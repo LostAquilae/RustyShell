@@ -51,7 +51,7 @@ To contribute to the project, certain rules must be followed in order to not bre
 
 ## Macro system
 
-A macro system is available throughout the project. They are defined inside the [utils](src/utils.rs) module. There are 2 different macros:
+A macro system is available throughout the project. They are defined inside the [utils](crates/RustyShell/src/utils.rs) module. There are 2 different macros:
 
 - **resolve_call_winapi**: This macro resolve the module address and the function's address altogether and then call the function. It can be called like this:
 
@@ -85,4 +85,4 @@ Their return value is a Result containing either the WINAPI return value on succ
 
 ## Testing
 
-For debug purposes, you now have the printf function available. You should use it with the format! macro to format strings before passing it to the function. You can also use println! macro if you gate behind condition compilation on shellcode feature not being enabled for the no shellcode debug target for easier printing.
+For debug purposes, you now have the printf macro available. You scan either use it with a string literal directly, or with the format! macro to format a string. You can also use println! macro if you gate behind condition compilation on shellcode feature not being enabled for the no shellcode debug target for easier printing.
