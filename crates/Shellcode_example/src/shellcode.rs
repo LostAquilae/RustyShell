@@ -48,11 +48,6 @@ pub fn align_stack() -> i32 {
     0
 }
 
-#[inline(always)]
-pub unsafe fn fn_cast<F>(raw: *const c_void, _proto: F) -> F {
-    unsafe { core::mem::transmute_copy(&raw) }
-}
-
 /// This is the actual 'entrypoint' of the code.
 ///
 /// This function contains example code of what is available right now as shellcode compatible
