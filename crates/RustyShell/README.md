@@ -1,53 +1,22 @@
-<p align="center">
-    <img src="./rsc/RustyShell.png" width="700">
-    <figcaption style="text-align: center">AI-generated image. Research (code and writing) remains fully human-made.</figcaption>
-</p>
-
 # RustyShell
 
 Custom shellcode template in Rust.
-
-## Requirements
-
-For this project, you need **rust nightly v0.100.0** with target triple **x86_64-pc-windows-gnu**. The project has only been compiled on Linux, so I would advise you use Linux.
-
-If you want to modify the LLVM Pass, you would need **LLVM v23.1**, which is the LLVM version used by rust nightly version 0.100.0.
-
-## Compiling
-
-This project is actually composed of three different crates:
-
-- **rusty_shell**: available in crates/RustyShell, this is the actual crate you can depend on for your shellcode project.
-- **shellcode_example**: available in crates/Shellcode_example, this is an example crate for a shellcode project. This gives you an example of how setting up a project for shellcode compatibility with **rusty_shell** target.
-- **no_shellcode_example**: available in crates/No_Shellcode_example, this crate depends on the **rusty_shell** crate, without the shellcode feature enabled. It allows you to get even more traces, especially in the [runtime_resolve.rs](crates/RustyShell/src/runtime_resolve.rs) module, with println! macros enabled on shellcode feature being disabled. This is the only way to have debug traces inside this module.
-
-Compiling the project is actually pretty straight forward. I use the Cargo make crate, which you can install by running the following command: 
-
-```shell
-cargo install cargo-make
-```
-
-Then, you can use the cargo make with 3 different command:
-
-```shell
-cargo make windows_gnu_shellcode # Compiling the shellcode_example crate
-cargo make windows_gnu_shellcode_debug # Compiling the shellcode_example crate with debug feature enabled which makes the printf function print things to the console
-cargo make windows_gnu_debug_no_shellcode # Compiling the no_shellcode_example crate
-```
-
-Compiling in shellcode mode actually gives you 2 output files: a **.exe** which is the full PE compiled and a **.bin** which is the *.text* section extracted, which gives you only the actual shellcode code that you can inject
 
 ## Contributing
 
 To contribute to the project, certain rules must be followed in order to not break the shellcode compatibility:
 
-- You should only rely on **core** and **alloc** crates for using rust standard library. The entry point for the shellcode target disables the std anyway so it won't compile if you include `use std` in your program. You can include `use core` or `use alloc` as you like though. For elements only present in the std crate, you can't use them.
+- You should only rely on **core** and **alloc** crates for using rust standard library. The shellcode feature disables the std anyway so it won't compile if you include `use std` in your program. You can include `use core` or `use alloc` as you like though. For elements only present in the std crate, you can't use them.
 
 - Crates in general may be used if they expose a `no-std` feature, which makes them usable in a no std environment, such as the shellcode target, but it may break shellcode anyway so tread carefully.
 
 - Every Windows dependency should be resolved dynamically at runtime by using get_dll_address and get_exported_function functions. You can find them in the runtime_resolve module.
 
 - You should avoid global and static variable. Depending on what you are doing with it, it might work because of compiler optimization, but you should avoid completely using it.
+
+- Be careful when modifying the [runtime_resolve](src/runtime_resolve.rs) module to not use anything related to the Global Allocator. Basically, anything from the alloc crate should be treated with great care. Problems may arise because using such structure and function from the alloc crate might trigger Global Allocator code, which in itself uses runtime_resolve module. This could end in an infinite loop. So you need to be really careful about modification in runtime_resolve module.
+
+- Also be careful when modifying the [allocator](src/allocator.rs) module. Any heap-allocated structures might end up calling the global allocator functions, which will end up in an infinite loop.
 
 ## Macro system
 

@@ -1,6 +1,11 @@
 [package]
 name = "rusty_shell"
 version = "0.1.0"
+description = "Custom Shellcode Template in Rust"
+repository = "https://github.com/LostAquilae/RustyShell"
+readme = "README.md"
+keywords = ["maldev", "shellcode", "positionindependent"]
+categories = ["no-std", "security"]
 edition = "2024"
 
 [dependencies]
