@@ -11,7 +11,9 @@ extern crate alloc;
 
 use rusty_shell::{call_winapi, resolve_call_winapi};
 
-mod winapi_bindings;
+mod winapi_bindings {
+    include!(concat!(env!("OUT_DIR"), "/winapi_bindings.rs"));
+}
 
 /// This function is simply here for debug purposes, when shellcode is not required to test some part of a code
 ///
