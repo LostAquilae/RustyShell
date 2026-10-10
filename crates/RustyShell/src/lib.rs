@@ -15,7 +15,9 @@ pub mod allocator;
 mod peb_types;
 
 #[cfg(feature = "shellcode")]
-mod winapi_bindings;
+mod winapi_bindings {
+    include!(concat!(env!("OUT_DIR"), "/winapi_bindings.rs"));
+}
 
 pub mod runtime_resolve;
 pub mod utils;

@@ -15,7 +15,9 @@ use alloc::vec::Vec;
 
 use rusty_shell::{call_winapi, resolve_call_winapi, printf};
 
-mod winapi_bindings;
+mod winapi_bindings {
+    include!(concat!(env!("OUT_DIR"), "/winapi_bindings.rs"));
+}
 
 /// Entry point of the code
 ///
