@@ -3,6 +3,7 @@
 //! This crate contains everything you need to code as a position-independent code (shellcode) in Rust
 
 #![cfg_attr(feature = "shellcode", no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![feature(ptr_cast_slice)]
 #![allow(non_snake_case)]
 

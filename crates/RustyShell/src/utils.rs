@@ -8,6 +8,10 @@
 /// This macro loads msvcrt thanks to LoadLibraryA and get the printf exported function from it
 /// then calls it for debug purposes.
 ///
+/// It's also available when debug feature is disabled, but it does nothing,
+/// letting you leave printf! calls in your code without compilation error and without runtime overhead,
+/// since the macro will expand to nothing, so it won't end up in your final binary
+///
 /// # Arguments
 ///
 /// * `arg` - A &str (literal string) or a String, that you can construct with the format! macro

@@ -7,7 +7,9 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     // Retrieving the OUT_DIR environment variable to get the output dir which we are allowed to use
-    let mut bindings_path = PathBuf::from(env::var("OUT_DIR").expect("Couldn't retrieve OUT_DIR environment variable to put generated bindings inside it"));
+    let mut bindings_path = PathBuf::from(env::var("OUT_DIR").expect(
+        "Couldn't retrieve OUT_DIR environment variable to put generated bindings inside it",
+    ));
     bindings_path.push("winapi_bindings.rs");
 
     // Using windows bindgen to generate bindings for WINAPI we use
