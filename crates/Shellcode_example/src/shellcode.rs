@@ -13,7 +13,7 @@ extern crate alloc;
 use alloc::format;
 use alloc::vec::Vec;
 
-use rusty_shell::{call_winapi, resolve_call_winapi, printf};
+use rusty_shell::{call_winapi, last_error_code, printf, resolve_call_winapi};
 
 mod winapi_bindings {
     include!(concat!(env!("OUT_DIR"), "/winapi_bindings.rs"));
@@ -56,52 +56,57 @@ pub fn align_stack() -> i32 {
 #[unsafe(no_mangle)]
 pub fn ExecutePayload() {
     // Calling LoadLibraryA to load user32.dll in memory
-    let user32_address = resolve_call_winapi!(
-        kernel32,
-        LoadLibraryA,
-        c"user32.dll".as_ptr().cast()
-    );
+    let user32_address =
+        match resolve_call_winapi!(kernel32, LoadLibraryA, c"user32.dll".as_ptr().cast()) {
+            // This variant means the call to the WINAPI happened, we need to check the return value
+            Ok(address) => {
+                // If the address is NULL, then something went wrong, getting more info by calling last_error_code!
+                if address.is_null() {
+                    printf!("Couldn't retrieve user32.dll's address");
+                    last_error_code!();
+                    return;
+                }
 
-    // Ensuring no error happened, either in runtime_resolve.rs or LoadLibraryA
-    let user32_address = match user32_address {
-        Ok(address) => {
-            if address.is_null() {
-                printf!("Couldn't retrieve user32.dll's address");
+                address
+            }
+            // This variant means something went wrong while retrieving the WINAPI's address
+            Err(error) => {
+                printf!(format!(
+                    "Couldn't retrieve user32_address, error: {}",
+                    error
+                ));
                 return;
             }
-
-            address
-        }
-        Err(error) => {
-            printf!(format!("Couldn't retrieve user32_address, error: {}", error));
-            return;
-        }
-    };
+        };
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
     printf!("Just before creating Vec");
+
     let mut vec = Vec::new();
+
     printf!("Just after creating Vec");
+
     vec.push(1);
+
     printf!("Just after pushing to Vec");
+
     vec.push(2);
+
+    // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
     printf!(format!(
         "Just after pushing to Vec second time, its value is: {:?}",
         vec
     ));
 
     // Example calling MessageBoxA
-    let result_message_box = call_winapi!(
+    match call_winapi!(
         user32_address,
         MessageBoxA,
         null_mut(),
         c"Hello World!".as_ptr().cast(),
         c"Example".as_ptr().cast(),
         0
-    );
-
-    // Printing the return value of MessageBoxA
-    match result_message_box {
+    ) {
         Ok(message_box_return_value) => {
             // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
             printf!(format!(
