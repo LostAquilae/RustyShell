@@ -21,11 +21,8 @@ mod winapi_bindings {
 fn main() -> Result<(), Box<dyn Error>> {
     println!("First instruction");
     // Calling LoadLibraryA to load user32.dll in memory
-    let user32_address = resolve_call_winapi!(
-        kernel32,
-        LoadLibraryA,
-        c"user32.dll".as_ptr().cast()
-    )?;
+    let user32_address =
+        resolve_call_winapi!(kernel32, LoadLibraryA, c"user32.dll".as_ptr().cast())?;
 
     // Checking return value of LoadLibraryA
     if user32_address.is_null() {
@@ -35,11 +32,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Simple example of using a Vector for checking that the Global Allocator effectively works
     println!("Just before creating Vec");
+
     let mut vec = Vec::new();
+
     println!("Just after creating Vec");
+
     vec.push(1);
+
     println!("Just after pushing to Vec");
+
     vec.push(2);
+
     println!(
         "Just after pushing to Vec second time, its value is: {:?}",
         vec

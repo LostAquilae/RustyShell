@@ -96,3 +96,41 @@ macro_rules! call_winapi {
 
     };
 }
+
+/// Macro to call GetLastError function to retrieve more info about an error
+///
+/// It simply prints the last error code retrieve by GetLastError or prints that it couldn't retrieve it
+///
+/// It's also available when debug feature is disabled, but it does nothing,
+/// letting you leave printf! calls in your code without compilation error and without runtime overhead,
+/// since the macro will expand to nothing, so it won't end up in your final binary
+#[cfg(feature = "debug")]
+#[macro_export]
+macro_rules! last_error_code {
+    () => {
+        match $crate::runtime_resolve::get_module_address("kernel32.dll").and_then(
+            |module_address| {
+                $crate::runtime_resolve::get_exported_symbol(module_address, "GetLastError").map(
+                    |winapi_address| {
+                        let GetLastError_func: extern "C" fn() -> u32 =
+                            unsafe { core::mem::transmute(winapi_address) };
+                        GetLastError_func()
+                    },
+                )
+            },
+        ) {
+            Ok(error_code) => {
+                $crate::printf!(format!("The last error code is: {}", error_code));
+            }
+            Err(error) => {
+                $crate::printf!("Couldn't Retrieve last error code");
+            }
+        }
+    };
+}
+
+#[cfg(not(feature = "debug"))]
+#[macro_export]
+macro_rules! last_error_code {
+    () => {};
+}
