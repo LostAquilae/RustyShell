@@ -8,7 +8,7 @@ use windows_sys::Win32::{
     System::{Kernel::LIST_ENTRY, WindowsProgramming::LDR_DATA_TABLE_ENTRY_0},
 };
 
-/// Structure that represents a module in the linked list of module inside an executable. We are redefining this sepcific structure
+/// Structure that represents a module in the linked list of module inside an executable. We are redefining this specific structure
 /// because we need to use BaseDllName field, which inside the windows crate is a reserved field with padding.
 #[repr(C)]
 #[allow(non_snake_case)]
