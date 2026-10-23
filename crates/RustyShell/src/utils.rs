@@ -3,42 +3,59 @@
 //! Functions and structures defined here are useful functions
 //! that can be used throughout the code.
 
-/// macro to resolve printf function at runtime and use it for debug purposes in shellcode target
+/// macro to resolve printf function at runtime and use it for debug purposes in shellcode target.
 ///
 /// This macro loads msvcrt thanks to LoadLibraryA and get the printf exported function from it
 /// then calls it for debug purposes.
 ///
 /// It's also available when debug feature is disabled, but it does nothing,
 /// letting you leave printf! calls in your code without compilation error and without runtime overhead,
-/// since the macro will expand to nothing, so it won't end up in your final binary
+/// since the macro will expand to nothing, so it won't end up in your final binary.
+/// 
+/// You can simply use it exactly as the println! macro.
 ///
 /// # Arguments
 ///
-/// * `arg` - A &str (literal string) or a String, that you can construct with the format! macro
+/// * `str` - A &str (literal string) 
+/// * `args` - A list of arguments to format
 #[cfg(feature = "debug")]
 #[macro_export]
 macro_rules! printf {
-    ($arg:expr) => {
-        if let Ok(cstring) = alloc::ffi::CString::new($arg) {
-            if let Ok(kernel32_address) =
-                $crate::runtime_resolve::get_module_address("kernel32.dll")
-            {
-                if let Ok(LoadLibraryA_address) =
-                    $crate::runtime_resolve::get_exported_symbol(kernel32_address, "LoadLibraryA")
-                {
-                    let LoadLibraryA_func: extern "C" fn(*const u8) -> *const core::ffi::c_void =
-                        unsafe { core::mem::transmute(LoadLibraryA_address) };
-                    let msvcrt_address = LoadLibraryA_func(c"msvcrt.dll".as_ptr().cast());
+    // Match on literal string that don't need formatting.
+    ( $str:literal ) => {
+        if let Ok(cstring) = alloc::ffi::CString::new($str) {
+            printf!(@internal cstring);
+        }
+    };
+    
+    // Match on string literals that requires formatting.
+    ( $str:literal, $($arg:expr), *) => {
+        if let Ok(cstring) = alloc::ffi::CString::new(format!($str, $($arg,)*)) {
+            printf!(@internal cstring);
+        }
+    };
 
-                    if !msvcrt_address.is_null() {
-                        if let Ok(printf_address) =
-                            $crate::runtime_resolve::get_exported_symbol(msvcrt_address, "printf")
-                        {
-                            let printf_func: extern "C" fn(...) -> i32 =
-                                unsafe { core::mem::transmute(printf_address) };
-                            printf_func(cstring.as_ptr());
-                            printf_func(c"\n".as_ptr());
-                        }
+    // Common shared behavior from the two matches above. We split these two matches
+    // to avoid using format! macro on simple literal string that don't need it
+    (@internal $cstring:expr) => {
+        if let Ok(kernel32_address) =
+            $crate::runtime_resolve::get_module_address("kernel32.dll")
+        {
+            if let Ok(LoadLibraryA_address) =
+                $crate::runtime_resolve::get_exported_symbol(kernel32_address, "LoadLibraryA")
+            {
+                let LoadLibraryA_func: extern "C" fn(*const u8) -> *const core::ffi::c_void =
+                    unsafe { core::mem::transmute(LoadLibraryA_address) };
+                let msvcrt_address = LoadLibraryA_func(c"msvcrt.dll".as_ptr().cast());
+
+                if !msvcrt_address.is_null() {
+                    if let Ok(printf_address) =
+                        $crate::runtime_resolve::get_exported_symbol(msvcrt_address, "printf")
+                    {
+                        let printf_func: extern "C" fn(...) -> i32 =
+                            unsafe { core::mem::transmute(printf_address) };
+                        printf_func($cstring.as_ptr());
+                        printf_func(c"\n".as_ptr());
                     }
                 }
             }
@@ -51,7 +68,8 @@ macro_rules! printf {
 #[cfg(not(feature = "debug"))]
 #[macro_export]
 macro_rules! printf {
-    ($arg:expr) => {};
+    ( $str:literal ) => {};
+    ( $str:literal, $($arg:expr), *) => {};
 }
 
 /// Macro to resolve a module and call a WINAPI inside that module without all the overhead of calling every function and checking every return value
@@ -124,7 +142,7 @@ macro_rules! last_error_code {
             },
         ) {
             Ok(error_code) => {
-                $crate::printf!(format!("The last error code is: {}", error_code));
+                $crate::printf!("The last error code is: {}", error_code);
             }
             Err(error) => {
                 $crate::printf!("Couldn't Retrieve last error code");

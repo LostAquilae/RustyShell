@@ -71,10 +71,10 @@ pub fn ExecutePayload() {
             }
             // This variant means something went wrong while retrieving the WINAPI's address
             Err(error) => {
-                printf!(format!(
+                printf!(
                     "Couldn't retrieve user32_address, error: {}",
                     error
-                ));
+                );
                 return;
             }
         };
@@ -93,10 +93,10 @@ pub fn ExecutePayload() {
     vec.push(2);
 
     // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
-    printf!(format!(
+    printf!(
         "Just after pushing to Vec second time, its value is: {:?}",
         vec
-    ));
+    );
 
     // Example calling MessageBoxA
     match call_winapi!(
@@ -109,13 +109,13 @@ pub fn ExecutePayload() {
     ) {
         Ok(message_box_return_value) => {
             // Example showing the use of a printf with the format macro, which generates vtable that are relative thanks to LLVM Pass
-            printf!(format!(
+            printf!(
                 "The value returned by MessageBoxA is: {}",
                 message_box_return_value
-            ));
+            );
         }
         Err(error) => {
-            printf!(format!("Couldn't call MessageBoxA, error: {}", error));
+            printf!("Couldn't call MessageBoxA, error: {}", error);
         }
     }
 
