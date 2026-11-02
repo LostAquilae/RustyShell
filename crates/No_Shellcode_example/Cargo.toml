@@ -10,6 +10,7 @@ path = "src/no_shellcode.rs"
 [dependencies]
 # RustyShell = { path = "../RustyShell", features = ["debug"] }
 rusty_shell = { path = "../RustyShell", features = ["debug"], default-features = false }
+rusty_shell_obfuscation = { path = "../RustyShell_obfuscation", features = ["obfuscation"]}
 
 [build-dependencies]
 windows-bindgen = { version = "0.100" }
