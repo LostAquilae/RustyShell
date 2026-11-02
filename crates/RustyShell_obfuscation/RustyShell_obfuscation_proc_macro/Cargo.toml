@@ -1,0 +1,21 @@
+[package]
+name = "rusty_shell_obfuscation_proc_macro"
+version = "0.1.0"
+description = "Internal crate for rusty_shell_obfuscation, containing only procedural macros"
+repository = "https://github.com/LostAquilae/RustyShell"
+readme = "README.md"
+keywords = ["maldev", "shellcode", "positionindependent"]
+categories = ["no-std", "security"]
+license-file = "LICENSE"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+aes-gcm = { version = "0.11.1", features = ["arrayvec"] }
+quote = { version = "1.0.47" }
+hybrid-array = { version = "0.4.15" }
+syn = { version = "3.0.9" }
+proc-macro2 = { version = "=1.0.107" }
+macro-string = { version = "0.3.0" }
