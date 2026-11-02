@@ -1,0 +1,18 @@
+[package]
+name = "rusty_shell_obfuscation"
+version = "0.1.0"
+description = "Obfuscation helper for RustyShell"
+repository = "https://github.com/LostAquilae/RustyShell"
+readme = "README.md"
+keywords = ["maldev", "shellcode", "positionindependent"]
+categories = ["no-std", "security"]
+license-file = "LICENSE"
+edition = "2024"
+
+[dependencies]
+rusty_shell_obfuscation_proc_macro = { version = "0.1.0" }
+aes-gcm = { version = "0.11.1", features = ["arrayvec"] }
+hybrid-array = "0.4.15"
+
+[features]
+obfuscation = []
