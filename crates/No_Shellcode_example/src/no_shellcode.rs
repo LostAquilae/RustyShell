@@ -15,6 +15,8 @@ mod winapi_bindings {
     include!(concat!(env!("OUT_DIR"), "/winapi_bindings.rs"));
 }
 
+rusty_shell_obfuscation::init_obfuscation!();
+
 /// This function is simply here for debug purposes, when shellcode is not required to test some part of a code
 ///
 /// This function contains example code of what is available right now as shellcode compatible

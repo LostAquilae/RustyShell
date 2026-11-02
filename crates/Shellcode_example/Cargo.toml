@@ -14,6 +14,7 @@ required-features = ["debug"]
 
 [dependencies]
 rusty_shell = { path = "../RustyShell" }
+rusty_shell_obfuscation = { path = "../RustyShell_obfuscation" }
 
 [build-dependencies]
 windows-bindgen = { version = "0.100" }
@@ -21,3 +22,4 @@ regex = { version = "1.13.1" }
 
 [features]
 debug = ["rusty_shell/debug"]
+obfuscation = ["rusty_shell_obfuscation/obfuscation", "rusty_shell/obfuscation"]
