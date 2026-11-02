@@ -1,6 +1,6 @@
 [package]
 name = "rusty_shell"
-version = "0.1.1"
+version = "0.1.2"
 description = "Custom Shellcode Template in Rust"
 repository = "https://github.com/LostAquilae/RustyShell"
 readme = "README.md"
@@ -26,12 +26,13 @@ windows-sys = { version = "0.61.2", default-features = false, features = [
     "Win32_System_WindowsProgramming",
     "Win32_System_Memory"
 ] }
+rusty_shell_obfuscation = { version = "0.1.0" }
 
 [build-dependencies]
-windows-bindgen = { version = "0.100" }
 regex = { version = "1.13.1" }
 
 [features]
-default = ["shellcode"]
+default = ["shellcode", "obfuscation"]
 shellcode = []
 debug = []
+obfuscation = ["rusty_shell_obfuscation/obfuscation"]

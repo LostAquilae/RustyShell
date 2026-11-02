@@ -19,6 +19,7 @@ use windows_sys::Win32::System::{
 };
 
 use crate::peb_types::*;
+use rusty_shell_obfuscation::encrypt;
 
 /// A simple error enum that gives information regarding the error that could occur in the runtime_resolve module.
 ///
@@ -27,13 +28,13 @@ use crate::peb_types::*;
 #[derive(Debug)]
 pub enum RuntimeResolveErrors {
     /// Some pointer sent as argument is null
-    NullPointer(*const c_void),
+    NullPointer,
     /// Some casting operation went wrong
     CastError,
     /// The export function was not found
-    ExportNotFound(&'static str),
+    ExportNotFound,
     /// The module was not found in the process memory
-    ModuleNotFound(&'static str),
+    ModuleNotFound,
     /// Any other kind of errors
     Unknown,
 }
@@ -42,19 +43,19 @@ pub enum RuntimeResolveErrors {
 impl Display for RuntimeResolveErrors {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            RuntimeResolveErrors::NullPointer(pointer) => write!(
-                f,
-                "Pointer sent as argument is null; here is its printed value: {:p}",
-                pointer
-            ),
-            RuntimeResolveErrors::CastError => write!(f, "Error while casting some value"),
-            RuntimeResolveErrors::ExportNotFound(symbol_name) => {
-                write!(f, "The function {:?} couldn't be found", symbol_name)
+            RuntimeResolveErrors::NullPointer => {
+                write!(f, "{}", encrypt!("Pointer sent as argument is null"))
             }
-            RuntimeResolveErrors::ModuleNotFound(module_name) => {
-                write!(f, "The DLL {} couldn't be found", module_name)
+            RuntimeResolveErrors::CastError => {
+                write!(f, "{}", encrypt!("Error while casting some value"))
             }
-            RuntimeResolveErrors::Unknown => write!(f, "Unknown error"),
+            RuntimeResolveErrors::ExportNotFound => {
+                write!(f, "{}", encrypt!("The symbol couldn't be found"))
+            }
+            RuntimeResolveErrors::ModuleNotFound => {
+                write!(f, "{}", encrypt!("The module couldn't be found"))
+            }
+            RuntimeResolveErrors::Unknown => write!(f, "{}", encrypt!("Unknown error")),
         }
     }
 }
@@ -79,7 +80,7 @@ impl ModuleWideString<'_> {
 ///
 /// This equality is designed to work exactly like
 /// in LoadLibraryA: <https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-loadlibrarya#parameters>
-/// where you can pass a module name without its extension, like kernel32 to search for kernel32.dll
+/// where you can pass a module name without its extension, like kernel32 to search for kernel32.dll.
 /// It is also case insensitive
 impl PartialEq<&str> for ModuleWideString<'_> {
     fn eq(&self, other: &&str) -> bool {
@@ -144,9 +145,7 @@ impl Display for ModuleWideString<'_> {
 /// # Return value
 ///
 /// Returns a Result containing the raw pointer to the DLL or an error of type Errors
-pub fn get_module_address(
-    module_name: &'static str,
-) -> Result<*const c_void, RuntimeResolveErrors> {
+pub fn get_module_address(module_name: &str) -> Result<*const c_void, RuntimeResolveErrors> {
     // Getting PEB address from gs register
     let peb_address: *const PEB;
     unsafe { asm!("mov {}, gs:0x60", out(reg) peb_address) };
@@ -186,7 +185,7 @@ pub fn get_module_address(
             // Retrieving the pointer and checking for it to be non null
             let dll_base = unsafe { (*ldr_data_entry).DllBase };
             if dll_base.is_null() {
-                return Err(RuntimeResolveErrors::ModuleNotFound(module_name));
+                return Err(RuntimeResolveErrors::ModuleNotFound);
             } else {
                 return Ok(unsafe { (*ldr_data_entry).DllBase });
             }
@@ -199,7 +198,7 @@ pub fn get_module_address(
     #[cfg(not(feature = "shellcode"))]
     println!("We couldn't find the dll named: {}", module_name);
 
-    Err(RuntimeResolveErrors::ModuleNotFound(module_name))
+    Err(RuntimeResolveErrors::ModuleNotFound)
 }
 
 /// Get the address of a specific symbol inside a DLL
@@ -212,13 +211,13 @@ pub fn get_module_address(
 /// # Return value
 ///
 /// Returns a Result containing the raw pointer to the symbol or an error of type Errors
-pub fn get_exported_symbol(
+pub fn get_exported_symbol<'a>(
     module_address: *const c_void,
-    symbol_name: &'static str,
+    symbol_name: &'a str,
 ) -> Result<*const c_void, RuntimeResolveErrors> {
     // Checking for null pointer
     if module_address.is_null() {
-        return Err(RuntimeResolveErrors::NullPointer(module_address));
+        return Err(RuntimeResolveErrors::NullPointer);
     }
 
     // Casting the pointer back to a reference
@@ -388,5 +387,5 @@ pub fn get_exported_symbol(
     #[cfg(not(feature = "shellcode"))]
     println!("Couldn't find the function: {:?}", symbol_name);
 
-    Err(RuntimeResolveErrors::ExportNotFound(symbol_name))
+    Err(RuntimeResolveErrors::ExportNotFound)
 }
