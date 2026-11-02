@@ -11,12 +11,12 @@
 /// It's also available when debug feature is disabled, but it does nothing,
 /// letting you leave printf! calls in your code without compilation error and without runtime overhead,
 /// since the macro will expand to nothing, so it won't end up in your final binary.
-/// 
+///
 /// You can simply use it exactly as the println! macro.
 ///
 /// # Arguments
 ///
-/// * `str` - A &str (literal string) 
+/// * `str` - A &str (literal string)
 /// * `args` - A list of arguments to format
 #[cfg(feature = "debug")]
 #[macro_export]
@@ -27,10 +27,10 @@ macro_rules! printf {
             printf!(@internal cstring);
         }
     };
-    
+
     // Match on string literals that requires formatting.
     ( $str:literal, $($arg:expr), *) => {
-        if let Ok(cstring) = alloc::ffi::CString::new(format!($str, $($arg,)*)) {
+        if let Ok(cstring) = alloc::ffi::CString::new(alloc::format!($str, $($arg,)*)) {
             printf!(@internal cstring);
         }
     };
@@ -39,18 +39,18 @@ macro_rules! printf {
     // to avoid using format! macro on simple literal string that don't need it
     (@internal $cstring:expr) => {
         if let Ok(kernel32_address) =
-            $crate::runtime_resolve::get_module_address("kernel32.dll")
+            $crate::runtime_resolve::get_module_address(&$crate::rusty_shell_obfuscation::encrypt!("kernel32.dll"))
         {
             if let Ok(LoadLibraryA_address) =
-                $crate::runtime_resolve::get_exported_symbol(kernel32_address, "LoadLibraryA")
+                $crate::runtime_resolve::get_exported_symbol(kernel32_address, &$crate::rusty_shell_obfuscation::encrypt!("LoadLibraryA"))
             {
                 let LoadLibraryA_func: extern "C" fn(*const u8) -> *const core::ffi::c_void =
                     unsafe { core::mem::transmute(LoadLibraryA_address) };
-                let msvcrt_address = LoadLibraryA_func(c"msvcrt.dll".as_ptr().cast());
+                let msvcrt_address = LoadLibraryA_func(encrypt!(c"msvcrt.dll").as_ptr().cast());
 
                 if !msvcrt_address.is_null() {
                     if let Ok(printf_address) =
-                        $crate::runtime_resolve::get_exported_symbol(msvcrt_address, "printf")
+                        $crate::runtime_resolve::get_exported_symbol(msvcrt_address, &$crate::rusty_shell_obfuscation::encrypt!("printf"))
                     {
                         let printf_func: extern "C" fn(...) -> i32 =
                             unsafe { core::mem::transmute(printf_address) };
@@ -86,8 +86,8 @@ macro_rules! printf {
 #[macro_export]
 macro_rules! resolve_call_winapi {
     ($module:ident, $winapi:ident $(, $args:expr)*) => {
-        $crate::runtime_resolve::get_module_address(core::concat!(core::stringify!($module), ".dll")).and_then(|module_address| {
-            $crate::runtime_resolve::get_exported_symbol(module_address, core::stringify!($winapi)).map(|winapi_address| {
+        $crate::runtime_resolve::get_module_address(&$crate::rusty_shell_obfuscation::encrypt!(concat!(stringify!($module), ".dll"))).and_then(|module_address| {
+            $crate::runtime_resolve::get_exported_symbol(module_address, &$crate::rusty_shell_obfuscation::encrypt!(stringify!($winapi))).map(|winapi_address| {
                 let winapi_func: crate::winapi_bindings::$winapi = unsafe { core::mem::transmute(winapi_address) };
                 unsafe { winapi_func($($args,)*) }
             })
@@ -109,12 +109,10 @@ macro_rules! resolve_call_winapi {
 #[macro_export]
 macro_rules! call_winapi {
     ($module_address:ident, $winapi:ident $(, $args:expr)*) => {
-        {
-            $crate::runtime_resolve::get_exported_symbol($module_address, core::stringify!($winapi)).map(|winapi_address| {
-                let winapi_func: crate::winapi_bindings::$winapi = unsafe { core::mem::transmute(winapi_address) };
-                unsafe { winapi_func($($args,)*) }
-            })
-        }
+        $crate::runtime_resolve::get_exported_symbol($module_address, &$crate::rusty_shell_obfuscation::encrypt!(stringify!($winapi))).map(|winapi_address| {
+            let winapi_func: crate::winapi_bindings::$winapi = unsafe { core::mem::transmute(winapi_address) };
+            unsafe { winapi_func($($args,)*) }
+        })
 
     };
 }
@@ -130,22 +128,32 @@ macro_rules! call_winapi {
 #[macro_export]
 macro_rules! last_error_code {
     () => {
-        match $crate::runtime_resolve::get_module_address("kernel32.dll").and_then(
-            |module_address| {
-                $crate::runtime_resolve::get_exported_symbol(module_address, "GetLastError").map(
-                    |winapi_address| {
-                        let GetLastError_func: extern "C" fn() -> u32 =
-                            unsafe { core::mem::transmute(winapi_address) };
-                        GetLastError_func()
-                    },
-                )
-            },
-        ) {
+        match $crate::runtime_resolve::get_module_address(
+            &$crate::rusty_shell_obfuscation::encrypt!("kernel32.dll"),
+        )
+        .and_then(|module_address| {
+            $crate::runtime_resolve::get_exported_symbol(
+                module_address,
+                &$crate::rusty_shell_obfuscation::encrypt!("GetLastError"),
+            )
+            .map(|winapi_address| {
+                let GetLastError_func: extern "C" fn() -> u32 =
+                    unsafe { core::mem::transmute(winapi_address) };
+                GetLastError_func()
+            })
+        }) {
             Ok(error_code) => {
-                $crate::printf!("The last error code is: {}", error_code);
+                $crate::printf!(
+                    "{}{}",
+                    $crate::rusty_shell_obfuscation::encrypt!("The last error code is: "),
+                    error_code
+                );
             }
             Err(error) => {
-                $crate::printf!("Couldn't Retrieve last error code");
+                $crate::printf!(
+                    "{}",
+                    $crate::rusty_shell_obfuscation::encrypt!("Couldn't Retrieve last error code")
+                );
             }
         }
     };

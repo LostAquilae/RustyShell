@@ -26,12 +26,13 @@ windows-sys = { version = "0.61.2", default-features = false, features = [
     "Win32_System_WindowsProgramming",
     "Win32_System_Memory"
 ] }
+rusty_shell_obfuscation = { path = "../RustyShell_obfuscation" }
 
 [build-dependencies]
-windows-bindgen = { version = "0.100" }
 regex = { version = "1.13.1" }
 
 [features]
-default = ["shellcode"]
+default = ["shellcode", "obfuscation"]
 shellcode = []
 debug = []
+obfuscation = ["rusty_shell_obfuscation/obfuscation"]
